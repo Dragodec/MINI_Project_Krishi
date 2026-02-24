@@ -57,7 +57,7 @@ Thumbs.db
 # =========================
 uploads/
 public/uploads/
-
+backend/test_assets
 # =========================
 # Debug / cache
 # =========================
