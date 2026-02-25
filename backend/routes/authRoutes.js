@@ -13,5 +13,7 @@ router.post('/reset-password', authController.resetPassword);
 // Protected Routes
 router.get('/me', protect, authController.getCurrentUser);
 router.post('/logout', authController.logoutUser); // Clears the HttpOnly cookie
+router.patch('/update-profile', protect, authController.updateProfile);
+router.patch('/change-password', protect, authController.changePassword);
 
 module.exports = router;

@@ -58,7 +58,7 @@ const LandingPage = () => {
           
           {/* Signup Redirect Button */}
           <Link 
-            to="/signup" 
+            to="/login" 
             className="rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-emerald-800 shadow-md hover:shadow-emerald-200 active:scale-95"
           >
             {language === 'ml' ? 'തുടങ്ങാം' : 'Open App'}

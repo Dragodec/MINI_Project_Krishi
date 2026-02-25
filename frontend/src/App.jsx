@@ -6,6 +6,8 @@ import Signup from './Pages/Signup';
 import Login from './Pages/Login';
 import ForgotPassword from './Pages/ForgotPassword';
 import Dashboard from './Pages/Dashboard';
+import Weather from './Pages/Weather';
+import Profile from './Pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -21,6 +23,22 @@ function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/weather" 
+        element={
+          <ProtectedRoute>
+            <Weather />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         } 
       />

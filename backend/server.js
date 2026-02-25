@@ -9,6 +9,8 @@ const path = require('path');
 const reportRoutes = require('./routes/reportRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
 const authRoutes = require('./routes/authRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const weatherRoutes = require('./routes/weatherRoutes');
 
 const { protect } = require('./middleware/authMiddleware');
 const corsOptions = require('./config/corsOptions');
@@ -38,6 +40,9 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/crop_db')
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', protect, reportRoutes);
 app.use('/api/voice', protect, voiceRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/weather', protect, weatherRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
