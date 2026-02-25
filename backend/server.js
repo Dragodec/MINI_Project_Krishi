@@ -1,29 +1,52 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const cookieParser = require('cookie-parser'); // Added
 const fs = require('fs');
+const path = require('path');
+
 const reportRoutes = require('./routes/reportRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
-const authRoutes = require('./routes/authRoutes'); // Added
-const { protect } = require('./middleware/authMiddleware'); // Added
+const authRoutes = require('./routes/authRoutes');
+
+const { protect } = require('./middleware/authMiddleware');
+const corsOptions = require('./config/corsOptions');
 
 const app = express();
+
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use(cookieParser()); // Added: Critical for reading cookies
+app.use(cors(corsOptions));
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const dirs = ['./uploads/images', './uploads/audio'];
 dirs.forEach(dir => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
 });
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/crop_db')
- .then(() => console.log(`Connected to ${process.env.MONGO_URI || 'MongoDB'}`))
-  .catch(err => console.log(err));
+  .then(() => console.log(`🚀 Connected to MongoDB: ${mongoose.connection.name}`))
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    process.exit(1);
+  });
 
-// Routes
-app.use('/api/auth', authRoutes); // Auth is public
-app.use('/api/reports', protect, reportRoutes); // Protected
-app.use('/api/voice', protect, voiceRoutes);   // Protected
+app.use('/api/auth', authRoutes);
+app.use('/api/reports', protect, reportRoutes);
+app.use('/api/voice', protect, voiceRoutes);
 
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error'
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+});
