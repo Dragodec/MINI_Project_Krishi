@@ -8,7 +8,9 @@ import ForgotPassword from './Pages/ForgotPassword';
 import Dashboard from './Pages/Dashboard';
 import Weather from './Pages/Weather';
 import Profile from './Pages/Profile';
-import ProtectedRoute from './components/ProtectedRoute';
+import AIQueries from './Pages/AIQueries';
+import ProtectedRoute from './Components/ProtectedRoute';
+import Layout from './Components/Layout';
 
 function App() {
   return (
@@ -18,32 +20,23 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
+      {/* Protected Group */}
       <Route 
-        path="/dashboard" 
+        path="*" 
         element={
           <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/weather" 
-        element={
-          <ProtectedRoute>
-            <Weather />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/profile" 
-        element={
-          <ProtectedRoute>
-            <Profile />
+            <Layout>
+              <Routes>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/weather" element={<Weather />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/queries" element={<AIQueries />} />
+              </Routes>
+            </Layout>
           </ProtectedRoute>
         } 
       />
     </Routes>
   );
 }
-
 export default App;

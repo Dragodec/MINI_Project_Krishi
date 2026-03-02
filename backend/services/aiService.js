@@ -24,4 +24,9 @@ const processAudio = async (filePath) => {
   return response.data;
 };
 
-module.exports = { analyzeImage, processAudio };
+const processText = async (text) => {
+  const res = await axios.post(`${FASTAPI_URL}/chat`, { text });
+  return res.data;
+};
+
+module.exports = { analyzeImage, processAudio, processText };

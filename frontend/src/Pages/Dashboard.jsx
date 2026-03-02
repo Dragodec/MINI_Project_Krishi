@@ -60,39 +60,6 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
-      {/* SIDEBAR */}
-      <aside className="w-72 bg-white border-r border-slate-200 hidden lg:flex flex-col sticky top-0 h-screen">
-        <div className="p-8 flex items-center gap-3">
-          <div className="bg-emerald-600 p-2 rounded-xl shadow-lg text-white"><Leaf size={24} /></div>
-          <span className="font-bold text-2xl tracking-tight text-slate-900">AgriAI</span>
-        </div>
-        <nav className="flex-1 px-4 space-y-1">
-          <button className="w-full flex items-center gap-3 px-4 py-3.5 bg-emerald-600 text-white rounded-2xl font-semibold shadow-md"><LayoutDashboard size={20} /> Dashboard</button>
-          <button onClick={() => navigate('/queries')} className="w-full flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 rounded-2xl font-medium"><MessageSquare size={20} /> AI Queries</button>
-          <button onClick={() => navigate('/history')} className="w-full flex items-center gap-3 px-4 py-3.5 text-slate-500 hover:bg-slate-50 rounded-2xl font-medium"><History size={20} /> History</button>
-        </nav>
-        <div className="p-4 mt-auto border-t border-slate-100 bg-slate-50/50">
-          <div
-  onClick={() => navigate('/profile')}
-  className="flex items-center gap-3 px-2 py-3 mb-2 cursor-pointer hover:bg-slate-100 rounded-xl transition"
->
-  <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm">
-    {user.name.charAt(0)}
-  </div>
-
-  <div className="flex-1 overflow-hidden">
-    <p className="text-sm font-bold text-slate-900 truncate">
-      {user.name}
-    </p>
-    <p className="text-xs text-slate-500 truncate capitalize">
-      {user.role}
-    </p>
-  </div>
-</div>
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-500 hover:bg-red-50 rounded-xl font-bold transition-colors"><LogOut size={18} /> Logout</button>
-        </div>
-      </aside>
-
       {/* MAIN CONTENT */}
       <main className="flex-1 p-4 md:p-8 lg:p-12 max-w-7xl mx-auto w-full">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">

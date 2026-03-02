@@ -11,6 +11,7 @@ const voiceRoutes = require('./routes/voiceRoutes');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const weatherRoutes = require('./routes/weatherRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const { protect } = require('./middleware/authMiddleware');
 const corsOptions = require('./config/corsOptions');
@@ -43,7 +44,7 @@ app.use('/api/voice', protect, voiceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/weather', protect, weatherRoutes);
-
+app.use('/api/chat', chatRoutes);
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
