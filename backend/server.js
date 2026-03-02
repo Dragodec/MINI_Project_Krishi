@@ -2,9 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const cookieParser = require('cookie-parser'); // Added
+const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const path = require('path');
+const rateLimit = require('express-rate-limit'); // Added
 
 const reportRoutes = require('./routes/reportRoutes');
 const voiceRoutes = require('./routes/voiceRoutes');
@@ -12,16 +13,27 @@ const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const weatherRoutes = require('./routes/weatherRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const usageRoutes = require('./routes/dev/usageRoutes');
 
 const { protect } = require('./middleware/authMiddleware');
 const corsOptions = require('./config/corsOptions');
 
 const app = express();
 
+// --- 🛡️ RATE LIMITING CONFIGURATION ---
+const chatLimiter = rateLimit({
+  windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000, 
+  max: (process.env.RATE_LIMIT_MAX || 15), 
+  message: { error: "Too many queries. Please wait 15 minutes before asking again." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(express.json());
-app.use(cookieParser()); // Added: Critical for reading cookies
+app.use(cookieParser());
 app.use(cors(corsOptions));
 
+// --- 📂 FILE SERVING ---
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const dirs = ['./uploads/images', './uploads/audio'];
@@ -38,13 +50,18 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/crop_db')
     process.exit(1);
   });
 
+// --- 🛣️ ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', protect, reportRoutes);
 app.use('/api/voice', protect, voiceRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/weather', protect, weatherRoutes);
+
+// Apply Rate Limiter specifically to Chat Send route to protect Gemini API
+app.use('/api/chat/send', chatLimiter); 
 app.use('/api/chat', chatRoutes);
+app.use('/api/usage', protect, usageRoutes);
+
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
