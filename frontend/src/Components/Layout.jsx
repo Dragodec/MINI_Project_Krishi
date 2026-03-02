@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, MessageSquare, History, Mic, Leaf, 
-  LogOut, CloudSun, User as UserIcon, Loader2, ChevronRight
+  LayoutDashboard, MessageSquare, History, Leaf, 
+  LogOut, CloudSun, Loader2, ChevronRight
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../API/axiosInstance';
+import UsageStats from './UsageStats'; // Import your usage component
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const Layout = ({ children }) => {
         const res = await axiosInstance.get('/auth/me');
         setUser(res.data);
       } catch (err) {
-        // Auth handled by ProtectedRoute, but we fail-safe here
+        console.log("Session verification failed");
       } finally {
         setLoading(false);
       }
@@ -70,7 +71,7 @@ const Layout = ({ children }) => {
                 onClick={() => navigate(item.path)}
                 className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold transition-all duration-200 ${
                   isActive 
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' 
+                    ? 'bg-emerald-600 text-white shadow-md' 
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
@@ -80,8 +81,13 @@ const Layout = ({ children }) => {
           })}
         </nav>
 
+        {/* --- USAGE STATS INTEGRATED HERE --- */}
+        <div className="px-4 mb-4">
+            <UsageStats />
+        </div>
+
         {/* USER PROFILE & LOGOUT SECTION */}
-        <div className="p-4 mt-auto border-t border-slate-100 bg-slate-50/50">
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           {user && (
             <div
               onClick={() => navigate('/profile')}
@@ -108,7 +114,6 @@ const Layout = ({ children }) => {
 
       {/* PAGE CONTENT */}
       <main className="flex-1 overflow-y-auto relative">
-        {/* Mobile Header (Hidden on Desktop) */}
         <div className="lg:hidden bg-white border-b p-4 sticky top-0 z-40 flex justify-between items-center">
              <div className="flex items-center gap-2">
                 <Leaf className="text-emerald-600" size={20} />
