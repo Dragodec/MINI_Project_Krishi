@@ -8,36 +8,44 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 
-# Load env
-env_path = os.path.join("..", "backend", ".env")
-load_dotenv(dotenv_path=env_path)
+# ================== LOAD ENV ==================
+env_path = "D:/Mini-Project/Project_Code/backend/.env"
+load_dotenv(env_path)
+
+api_key = os.getenv("GOOGLE_API_KEY")
+if not api_key:
+    raise ValueError("❌ GOOGLE_API_KEY missing")
 
 app = FastAPI()
 
-# --- RAG SETUP ---
+# ================== RAG SETUP ==================
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
 db = Chroma(
     persist_directory="./chroma_db",
     embedding_function=embeddings,
     collection_name="agri_rag"
 )
 
-# --- GEMINI ---
-api_key = os.getenv("GOOGLE_API_KEY")
-
+# ================== GEMINI ==================
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=api_key,
     temperature=0
 )
 
-# --- SIMPLE CACHE ---
+# ================== CACHE ==================
 cache = {}
 
 def get_cache_key(text, image_bytes):
-    raw = (text or "") + str(len(image_bytes) if image_bytes else 0)
-    return hashlib.md5(raw.encode()).hexdigest()
+    m = hashlib.md5()
+    if text:
+        m.update(text.encode())
+    if image_bytes:
+        m.update(image_bytes)
+    return m.hexdigest()
 
+# ================== API ==================
 @app.post("/process")
 async def process_query(
     text: str = Form(None),
@@ -46,28 +54,39 @@ async def process_query(
 ):
     image_bytes = None
 
-    # --- READ IMAGE ---
+    # -------- READ IMAGE --------
     if image:
         image_bytes = await image.read()
 
-    # --- CACHE CHECK ---
+    # -------- CACHE --------
     cache_key = get_cache_key(text, image_bytes)
     if cache_key in cache:
         return {"response": cache[cache_key]}
 
-    # --- RAG ---
-    context = ""
-    if text:
-        docs = db.similarity_search(text, k=2)
-        context = "\n".join([d.page_content for d in docs])
+    # -------- SKIP WEAK QUERIES --------
+    if text and len(text.split()) < 3 and not image:
+        return {"response": "Please provide more details about your crop issue."}
 
-    # --- LOW CONTEXT → SKIP API ---
+    # -------- RAG SEARCH --------
+    context = ""
+
+    if text:
+        results = db.similarity_search_with_score(text, k=2)
+
+        filtered_docs = [doc for doc, score in results if score < 1.2]
+
+        context = "\n".join([d.page_content for d in filtered_docs])
+
+    # -------- NO CONTEXT → NO GEMINI --------
     if not context.strip() and not image:
         return {
             "response": "I am not sure. Please consult a local agricultural officer."
         }
 
-    # --- BETTER PROMPT ---
+    # -------- LIMIT CONTEXT SIZE --------
+    context = context[:1500]
+
+    # -------- PROMPT --------
     prompt = f"""
 You are a Kerala agricultural expert.
 
@@ -87,7 +106,7 @@ Rules:
 
     content = [{"type": "text", "text": prompt}]
 
-    # --- IMAGE ---
+    # -------- IMAGE --------
     if image_bytes:
         encoded = base64.b64encode(image_bytes).decode("utf-8")
         content.append({
@@ -95,14 +114,24 @@ Rules:
             "image_url": f"data:{image.content_type};base64,{encoded}"
         })
 
-    # --- AUDIO (optional skip for now) ---
-    # You can disable this to reduce cost
+    # -------- GEMINI CALL --------
+    try:
+        response = llm.invoke([HumanMessage(content=content)])
+        final_text = response.content[:800]
+    except Exception as e:
+        print("❌ Gemini Error:", e)
+        return {
+            "response": "AI service temporarily unavailable. Try again later."
+        }
 
-    # --- CALL GEMINI ---
-    response = llm.invoke([HumanMessage(content=content)])
-    final_text = response.content[:800]  # limit size
-
-    # --- STORE CACHE ---
+    # -------- CACHE SAVE --------
     cache[cache_key] = final_text
 
     return {"response": final_text}
+
+
+# ================== RUN SERVER ==================
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 FastAPI running on http://127.0.0.1:8000")
+    uvicorn.run(app, host="127.0.0.1", port=8000)

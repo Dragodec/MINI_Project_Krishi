@@ -15,7 +15,7 @@ start cmd /k "cd backend && node server.js"
 
 :: ---- AI SIMULATION ----
 echo Starting AI Simulation...
-start cmd /k "cd ai_simulation && call venv\Scripts\activate && python mock_ai.py"
+start cmd /k "cd ai_simulation && call venv\Scripts\activate && python main.py"
 
 echo ===============================
 echo All services launched
