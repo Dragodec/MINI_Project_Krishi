@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-
 import LandingPage from './Pages/LandingPage';
 import Signup from './Pages/Signup';
 import Login from './Pages/Login';
@@ -20,7 +19,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* Protected Group */}
+      {/* All routes inside here will have the Sidebar Layout */}
       <Route 
         path="*" 
         element={
@@ -31,6 +30,7 @@ function App() {
                 <Route path="/weather" element={<Weather />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/queries" element={<AIQueries />} />
+                {/* You can add /history here later */}
               </Routes>
             </Layout>
           </ProtectedRoute>
@@ -39,4 +39,5 @@ function App() {
     </Routes>
   );
 }
+
 export default App;
