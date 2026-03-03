@@ -67,3 +67,6 @@ public/uploads/
 # Virtual Env's
 # =========================
 AI_simulation/venv
+
+AI_simulation/chroma_db/
+*.sqlite3
