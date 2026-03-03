@@ -19,7 +19,6 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* All routes inside here will have the Sidebar Layout */}
       <Route 
         path="*" 
         element={
@@ -30,7 +29,7 @@ function App() {
                 <Route path="/weather" element={<Weather />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/queries" element={<AIQueries />} />
-                {/* You can add /history here later */}
+                <Route path="/queries/:chatId" element={<AIQueries />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

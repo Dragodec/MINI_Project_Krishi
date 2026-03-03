@@ -14,12 +14,17 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+// Existing routes
 router.post('/send', protect, upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'audio', maxCount: 1 }
 ]), chatController.sendMessage);
 
-router.get('/', protect, chatController.getConversation);
-router.get('/history', protect, chatController.getHistory); // Fixed
+router.get('/history', protect, chatController.getHistory);
+
+// Specific chat management routes
+router.get('/:chatId', protect, chatController.getConversation);
+router.delete('/:chatId', protect, chatController.deleteConversation);
+router.put('/:chatId/rename', protect, chatController.renameConversation);
 
 module.exports = router;
