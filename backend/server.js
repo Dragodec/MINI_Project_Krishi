@@ -7,8 +7,6 @@ const fs = require('fs');
 const path = require('path');
 const rateLimit = require('express-rate-limit'); // Added
 
-const reportRoutes = require('./routes/reportRoutes');
-const voiceRoutes = require('./routes/voiceRoutes');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const weatherRoutes = require('./routes/weatherRoutes');
@@ -52,8 +50,6 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/crop_db')
 
 // --- 🛣️ ROUTES ---
 app.use('/api/auth', authRoutes);
-app.use('/api/reports', protect, reportRoutes);
-app.use('/api/voice', protect, voiceRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/weather', protect, weatherRoutes);
 

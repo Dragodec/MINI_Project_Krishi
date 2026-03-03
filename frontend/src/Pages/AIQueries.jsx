@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../API/axiosInstance';
 import { 
   Send, Mic, Image as ImageIcon, Loader2, X,
-  Sprout, Trash2, Clock, Calendar, Info, Leaf, Waves, ThermometerSun, Volume2
+  Sprout, Trash2, Clock, Calendar, Leaf, Volume2, Plus, Edit3
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const AIQueries = () => {
+  const { chatId } = useParams(); // URL parameter for multi-chat
+  const navigate = useNavigate();
+
   const [messages, setMessages] = useState([]);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -20,11 +24,10 @@ const AIQueries = () => {
   const fileInputRef = useRef(null);
   const audioInputRef = useRef(null);
 
-  // Helper to serve files from local blob or backend
+  // Helper to serve files
   const getFileSrc = (filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith('blob:')) return filePath;
-    // Normalize Windows backslashes to forward slashes for URL and point to backend
     const normalizedPath = filePath.replace(/\\/g, '/');
     return `http://localhost:5000/${normalizedPath}`;
   };
@@ -33,30 +36,18 @@ const AIQueries = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  useEffect(() => {
-    fetchChat();
-    fetchHistory();
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, loading, scrollToBottom]);
-
-  const normalizeMessages = (msgs) =>
-    msgs.map((msg, index) => ({
-      ...msg,
-      id: msg._id || msg.id || `${Date.now()}-${index}`
-    }));
-
-  const fetchChat = async () => {
+  // Fetch specific chat messages
+  const fetchChat = useCallback(async (id) => {
     try {
-      const res = await axiosInstance.get('/chat');
-      setMessages(normalizeMessages(res.data.messages || []));
+      const res = await axiosInstance.get(`/chat/${id}`);
+      setMessages(res.data.messages || []);
     } catch (err) {
-      toast.error("Unable to sync chat history");
+      toast.error("Unable to load this conversation");
+      navigate('/queries');
     }
-  };
+  }, [navigate]);
 
+  // Fetch sidebar history list
   const fetchHistory = async () => {
     try {
       const res = await axiosInstance.get('/chat/history');
@@ -66,60 +57,91 @@ const AIQueries = () => {
     }
   };
 
+  // Logic to handle route changes
+  useEffect(() => {
+    fetchHistory();
+    if (chatId) {
+      fetchChat(chatId);
+    } else {
+      setMessages([]); // Clear viewport for new chat
+    }
+  }, [chatId, fetchChat]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading, scrollToBottom]);
+
   const handleSend = async () => {
-    // 1. Validation
     if (!text.trim() && !image && !audio) {
       return toast.error("Provide a query, image, or voice note");
     }
 
-    // 2. Prepare Form Data for Multimedia
     const formData = new FormData();
     if (text) formData.append('text', text);
     if (image) formData.append('image', image);
     if (audio) formData.append('audio', audio);
+    if (chatId) formData.append('chatId', chatId); // Inform backend which chat to update
 
-    // 3. Optimistic UI Update
-    const userMsgId = `user-${Date.now()}`;
+    // Optimistic UI
     const userMessage = {
       role: 'user',
       text: text || (image ? "Sent an image for analysis" : "Sent a voice query"),
       image: image ? URL.createObjectURL(image) : null,
       audio: audio ? URL.createObjectURL(audio) : null,
-      id: userMsgId
+      id: `user-${Date.now()}`
     };
 
     setMessages(prev => [...prev, userMessage]);
     setLoading(true);
-    
-    // Reset inputs
     const lastText = text;
-    setText('');
-    setImage(null);
-    setAudio(null);
+    setText(''); setImage(null); setAudio(null);
 
     try {
-      // 4. API Call
       const res = await axiosInstance.post('/chat/send', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      // 5. Add AI Response
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: res.data.reply,
-        id: `ai-${Date.now()}`
-      }]);
-      
-      // Refresh history sidebar
+      // If this was a new chat, the backend returns a new chatId
+      if (!chatId && res.data.chatId) {
+        navigate(`/queries/${res.data.chatId}`);
+      } else {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          text: res.data.reply,
+          id: `ai-${Date.now()}`
+        }]);
+      }
       fetchHistory();
     } catch (err) {
-      console.error(err);
       toast.error(err.response?.data?.error || "AI Station Unreachable");
       setText(lastText); 
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteChat = async (id, e) => {
+    e.stopPropagation();
+    if(!window.confirm("Delete this field log?")) return;
+    try {
+      await axiosInstance.delete(`/chat/${id}`);
+      fetchHistory();
+      if(chatId === id) navigate('/queries');
+      toast.success("Log deleted");
+    } catch (err) {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const renameChat = async (id, e) => {
+    e.stopPropagation();
+    const newTitle = prompt("Enter new name for this log:");
+    if(!newTitle) return;
+    try {
+      await axiosInstance.put(`/chat/${id}/rename`, { title: newTitle });
+      fetchHistory();
+    } catch (err) {
+      toast.error("Failed to rename");
     }
   };
 
@@ -149,13 +171,22 @@ const AIQueries = () => {
           </div>
         </div>
 
-        <button 
-          onClick={() => setShowHistory(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-emerald-200 text-slate-600 rounded-xl transition-all font-bold text-xs uppercase tracking-widest shadow-sm"
-        >
-          <Clock size={16} className="text-emerald-500" />
-          <span className="hidden md:inline">Past Logs</span>
-        </button>
+        <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate('/queries')}
+              className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
+              title="New Chat"
+            >
+              <Plus size={20} />
+            </button>
+            <button 
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-emerald-200 text-slate-600 rounded-xl transition-all font-bold text-xs uppercase tracking-widest shadow-sm"
+            >
+              <Clock size={16} className="text-emerald-500" />
+              <span className="hidden md:inline">Past Logs</span>
+            </button>
+        </div>
       </header>
 
       {/* CHAT VIEWPORT */}
@@ -175,8 +206,8 @@ const AIQueries = () => {
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+        {messages.map((msg, index) => (
+          <div key={msg.id || index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`relative max-w-[85%] md:max-w-[70%] p-5 shadow-sm transition-all ${
               msg.role === 'user' 
                 ? 'bg-slate-900 text-white rounded-[2rem] rounded-tr-none' 
@@ -184,7 +215,6 @@ const AIQueries = () => {
             }`}>
               {msg.text && <p className="text-sm md:text-base font-bold leading-relaxed whitespace-pre-wrap">{msg.text}</p>}
               
-              {/* IMAGE RENDERING */}
               {msg.image && (
                 <div className="mt-3 rounded-2xl overflow-hidden border border-black/10">
                   <img 
@@ -196,12 +226,10 @@ const AIQueries = () => {
                 </div>
               )}
 
-              {/* AUDIO RENDERING */}
               {msg.audio && (
                 <div className="mt-3">
                   <audio controls className="w-full max-w-[240px] h-10">
                     <source src={getFileSrc(msg.audio)} type="audio/wav" />
-                    Your browser does not support the audio element.
                   </audio>
                 </div>
               )}
@@ -246,9 +274,6 @@ const AIQueries = () => {
                   <button onClick={() => setAudio(null)} className="text-red-500 ml-1"><X size={14}/></button>
                 </div>
               )}
-              <div className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                Payload Ready
-              </div>
             </div>
           )}
 
@@ -296,14 +321,29 @@ const AIQueries = () => {
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20}/></button>
              </div>
              <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
-                {history.map((h, i) => (
-                    <div key={i} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-emerald-50 transition-all cursor-pointer">
-                        <p className="text-[10px] font-black text-slate-400 mb-1 flex items-center gap-2">
-                            <Calendar size={12}/> {new Date(h.createdAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm font-bold text-slate-700 truncate">
-                          {h.messages?.[0]?.text || "Multimedia Query"}
-                        </p>
+                {history.map((h) => (
+                    <div 
+                      key={h._id} 
+                      onClick={() => { navigate(`/queries/${h._id}`); setShowHistory(false); }}
+                      className={`p-4 rounded-2xl transition-all cursor-pointer border flex justify-between items-center ${chatId === h._id ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100 hover:bg-emerald-50'}`}
+                    >
+                        <div className="overflow-hidden">
+                            <p className="text-[10px] font-black text-slate-400 mb-1 flex items-center gap-2">
+                                <Calendar size={12}/> {new Date(h.createdAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-sm font-bold text-slate-700 truncate pr-2">
+                              {h.title || "Multimedia Query"}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={(e) => renameChat(h._id, e)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-white rounded-lg transition-all">
+                            <Plus size={14} className="rotate-45" /> {/* Using Edit/Plus as placeholders */}
+                            <Edit3 size={14} />
+                          </button>
+                          <button onClick={(e) => deleteChat(h._id, e)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                     </div>
                 ))}
              </div>

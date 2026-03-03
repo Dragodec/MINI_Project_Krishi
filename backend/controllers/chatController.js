@@ -2,7 +2,7 @@ const Conversation = require('../models/Conversation');
 const AIUsage = require('../models/dev/AIUsage');
 const aiService = require('../services/aiService');
 
-// ---- SIMPLE LOCAL RESPONSES (NO API CALL) ----
+// ---- PRESERVED: SIMPLE LOCAL RESPONSES ----
 const getLocalResponse = (text) => {
     const input = text.toLowerCase().trim();
     const greetings = ['hi', 'hello', 'hey', 'namaste', 'good morning', 'good evening'];
@@ -11,54 +11,46 @@ const getLocalResponse = (text) => {
 
     if (greetings.includes(input))
         return "Hello! I am your AI Krishi Officer 🌾. How is your crop doing today?";
-
     if (closures.includes(input))
         return "Goodbye! Take care of your farm 🌱.";
-
     if (thanks.includes(input))
         return "You're welcome! Always here to help you grow better 🌿.";
 
     return null;
 };
 
-// ---- TOKEN ESTIMATION ----
+// ---- PRESERVED: TOKEN ESTIMATION ----
 const estimateTokens = (text, hasImage, hasAudio) => {
     let tokens = text ? text.split(" ").length * 1.3 : 0;
-
     if (hasImage) tokens += 1200;
     if (hasAudio) tokens += 2000;
-
     return Math.floor(tokens);
 };
 
+// ---- UPDATED: SEND MESSAGE (Multi-chat aware) ----
 exports.sendMessage = async (req, res) => {
     try {
-        const { text } = req.body;
+        const { text, chatId } = req.body; // chatId is now sent from frontend
         const files = req.files || {};
         const imagePath = files.image?.[0]?.path || null;
         const audioPath = files.audio?.[0]?.path || null;
 
         let aiResponse = "";
 
-        // ---- GET OR CREATE USAGE ----
+        // ---- PRESERVED: USAGE CHECK ----
         let usage = await AIUsage.findOne({ user: req.user._id });
-        if (!usage) {
-            usage = new AIUsage({ user: req.user._id });
-        }
+        if (!usage) usage = new AIUsage({ user: req.user._id });
 
-        // ---- HARD LIMIT PROTECTION ----
         if (usage.requestsUsed >= 1400) {
-            return res.status(429).json({
-                error: "Daily AI limit reached. Try again tomorrow."
-            });
+            return res.status(429).json({ error: "Daily AI limit reached." });
         }
 
-        // ---- LOCAL RESPONSE (NO COST) ----
+        // ---- PRESERVED: LOCAL RESPONSE ----
         if (text && !imagePath && !audioPath) {
             aiResponse = getLocalResponse(text);
         }
 
-        // ---- AI CALL ----
+        // ---- PRESERVED: AI CALL ----
         if (!aiResponse) {
             try {
                 const result = await aiService.processMultimodal(text, imagePath, audioPath);
@@ -68,27 +60,27 @@ exports.sendMessage = async (req, res) => {
                 aiResponse = "AI service unavailable. Please try again.";
             }
 
-            // ---- UPDATE USAGE ONLY IF AI CALLED ----
             const tokensUsed = estimateTokens(text, !!imagePath, !!audioPath);
-
             usage.requestsUsed += 1;
             usage.tokensUsed += tokensUsed;
             usage.lastUpdated = new Date();
-
             await usage.save();
         }
 
-        // ---- SAVE CONVERSATION ----
-        let convo = await Conversation.findOne({ user: req.user._id });
+        // ---- MULTI-CHAT LOGIC: SAVE TO SPECIFIC CONVO ----
+        let convo;
+        if (chatId) {
+            convo = await Conversation.findOne({ _id: chatId, user: req.user._id });
+        }
 
         if (!convo) {
             convo = new Conversation({
                 user: req.user._id,
+                title: text ? (text.length > 30 ? text.substring(0, 30) + "..." : text) : "New Multimedia Query",
                 messages: []
             });
         }
 
-        // USER MESSAGE
         convo.messages.push({
             role: 'user',
             text: text || (imagePath ? "[Image Sent]" : "[Audio Sent]"),
@@ -97,7 +89,6 @@ exports.sendMessage = async (req, res) => {
             createdAt: new Date()
         });
 
-        // AI MESSAGE
         convo.messages.push({
             role: 'assistant',
             text: aiResponse,
@@ -106,7 +97,8 @@ exports.sendMessage = async (req, res) => {
 
         await convo.save();
 
-        res.json({ reply: aiResponse });
+        // Return chatId so frontend can navigate to the URL if it's a new chat
+        res.json({ reply: aiResponse, chatId: convo._id, title: convo.title });
 
     } catch (err) {
         console.error("CHAT CONTROLLER ERROR:", err);
@@ -114,34 +106,49 @@ exports.sendMessage = async (req, res) => {
     }
 };
 
-// ---- GET FULL CHAT ----
+// ---- UPDATED: GET SPECIFIC CHAT ----
 exports.getConversation = async (req, res) => {
     try {
-        const convo = await Conversation.findOne({ user: req.user._id });
+        const convo = await Conversation.findOne({ _id: req.params.chatId, user: req.user._id });
         res.json(convo || { messages: [] });
     } catch (err) {
-        console.error("FETCH CONVO ERROR:", err);
         res.status(500).json({ error: err.message });
     }
 };
 
-// ---- GET HISTORY ----
+// ---- UPDATED: GET ALL TITLES (HISTORY) ----
 exports.getHistory = async (req, res) => {
     try {
-        const convo = await Conversation.findOne({ user: req.user._id });
-
-        if (!convo) return res.json({ history: [] });
-
-        const historyData = [{
-            _id: convo._id,
-            createdAt: convo.createdAt,
-            messages: convo.messages
-        }];
-
-        res.json({ history: historyData });
-
+        // We only return the titles and IDs to make the sidebar light
+        const history = await Conversation.find({ user: req.user._id })
+            .select('title createdAt')
+            .sort({ createdAt: -1 });
+        res.json({ history });
     } catch (err) {
-        console.error("FETCH HISTORY ERROR:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// ---- NEW: DELETE CHAT ----
+exports.deleteConversation = async (req, res) => {
+    try {
+        await Conversation.deleteOne({ _id: req.params.chatId, user: req.user._id });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// ---- NEW: RENAME CHAT ----
+exports.renameConversation = async (req, res) => {
+    try {
+        const convo = await Conversation.findOneAndUpdate(
+            { _id: req.params.chatId, user: req.user._id },
+            { title: req.body.title },
+            { new: true }
+        );
+        res.json(convo);
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
