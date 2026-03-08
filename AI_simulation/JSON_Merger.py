@@ -1,42 +1,61 @@
 import json
 import os
 
-# Folder path
-BASE_DIR = r"D:\Mini-Project\Project_Code\AI_simulation\RAG_sample_jsons"
+# Folder containing the JSON datasets
+BASE_PATH = r"D:\Mini-Project\Project_Code\AI_simulation\Jsons"
 
-# Output file
-OUTPUT_FILE = os.path.join(BASE_DIR, "final_merged.json")
+FILES = [
+    "crop_health_dataset.json",
+    "government_schemes_dataset.json",
+    "farm_practices_dataset.json",
+    "weather_dataset.json"
+]
 
 merged_data = []
-id_counter = 1
 
-# Loop through Batch1.json to Batch4.json
-for i in range(1, 5):
-    file_path = os.path.join(BASE_DIR, f"batch{i}.json")
-    
+print("\n📦 Loading datasets...\n")
+
+# Load each dataset
+for file in FILES:
+    file_path = os.path.join(BASE_PATH, file)
+
     if not os.path.exists(file_path):
-        print(f"❌ File not found: {file_path}")
+        print(f"❌ File not found: {file}")
         continue
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        try:
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        except json.JSONDecodeError:
-            print(f"⚠️ Invalid JSON in {file_path}")
-            continue
 
-        if not isinstance(data, list):
-            print(f"⚠️ Skipping {file_path} (not a list)")
-            continue
+        if isinstance(data, list):
+            print(f"✅ {file} -> {len(data)} entries")
+            merged_data.extend(data)
+        else:
+            print(f"⚠️ {file} is not a JSON list, skipping")
 
-        for item in data:
-            # Reassign ID cleanly
-            item["id"] = id_counter
-            merged_data.append(item)
-            id_counter += 1
+    except Exception as e:
+        print(f"❌ Error reading {file}: {e}")
 
-# Save merged file
-with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-    json.dump(merged_data, f, indent=2, ensure_ascii=False)
+print("\n📊 Total entries before ID fix:", len(merged_data))
 
-print(f"✅ Merged {len(merged_data)} entries into {OUTPUT_FILE}")
+# Fix IDs sequentially
+print("\n🔧 Reassigning IDs...")
+
+for i, entry in enumerate(merged_data, start=1):
+    entry["id"] = i
+
+print("✅ IDs reassigned")
+
+# Output file
+output_path = os.path.join(BASE_PATH, "agri_master_rag.json")
+
+try:
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(merged_data, f, indent=2, ensure_ascii=False)
+
+    print("\n🎉 Merge complete!")
+    print(f"📁 File saved to: {output_path}")
+    print(f"📊 Final dataset size: {len(merged_data)} entries")
+
+except Exception as e:
+    print(f"❌ Error saving merged file: {e}")

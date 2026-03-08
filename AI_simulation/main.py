@@ -9,17 +9,24 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 
 # ================== LOAD ENV ==================
+
 env_path = "D:/Mini-Project/Project_Code/backend/.env"
 load_dotenv(env_path)
 
 api_key = os.getenv("GOOGLE_API_KEY")
+
 if not api_key:
     raise ValueError("❌ GOOGLE_API_KEY missing")
 
 app = FastAPI()
 
-# ================== RAG SETUP ==================
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# ================== EMBEDDINGS ==================
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
+
+# ================== VECTOR DB ==================
 
 db = Chroma(
     persist_directory="./chroma_db",
@@ -28,6 +35,7 @@ db = Chroma(
 )
 
 # ================== GEMINI ==================
+
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
     google_api_key=api_key,
@@ -35,103 +43,124 @@ llm = ChatGoogleGenerativeAI(
 )
 
 # ================== CACHE ==================
+
 cache = {}
 
 def get_cache_key(text, image_bytes):
     m = hashlib.md5()
+
     if text:
         m.update(text.encode())
+
     if image_bytes:
         m.update(image_bytes)
+
     return m.hexdigest()
 
 # ================== API ==================
+
 @app.post("/process")
 async def process_query(
     text: str = Form(None),
     image: UploadFile = File(None),
     audio: UploadFile = File(None)
 ):
+
     image_bytes = None
 
-    # -------- READ IMAGE --------
     if image:
         image_bytes = await image.read()
 
-    # -------- CACHE --------
     cache_key = get_cache_key(text, image_bytes)
+
     if cache_key in cache:
         return {"response": cache[cache_key]}
 
-    # -------- SKIP WEAK QUERIES --------
-    if text and len(text.split()) < 3 and not image:
+    if text and len(text.split()) < 2 and not image:
         return {"response": "Please provide more details about your crop issue."}
 
-    # -------- RAG SEARCH --------
     context = ""
 
     if text:
-        results = db.similarity_search_with_score(text, k=2)
 
-        filtered_docs = [doc for doc, score in results if score < 1.2]
+        boosted_query = text + " farming agriculture crop disease pest kerala കൃഷി രോഗം കീടം വാഴ നെല്ല്"
 
-        context = "\n".join([d.page_content for d in filtered_docs])
+        docs1 = db.similarity_search(text, k=3)
+        docs2 = db.similarity_search(boosted_query, k=3)
 
-    # -------- NO CONTEXT → NO GEMINI --------
+        seen = set()
+        docs = []
+
+        for d in docs1 + docs2:
+            if d.page_content not in seen:
+                docs.append(d)
+                seen.add(d.page_content)
+
+        docs = docs[:3]
+
+        context = "\n".join([d.page_content for d in docs])
+
     if not context.strip() and not image:
         return {
             "response": "I am not sure. Please consult a local agricultural officer."
         }
 
-    # -------- LIMIT CONTEXT SIZE --------
     context = context[:1500]
 
-    # -------- PROMPT --------
     prompt = f"""
-You are a Kerala agricultural expert.
+You are a Kerala Krishi Bhavan agricultural officer.
+
+Use the agricultural knowledge below to answer the farmer's question.
 
 Context:
 {context}
 
-User Query:
+Farmer Question:
 {text if text else "Analyze the image."}
 
 Rules:
-- Do NOT assume crop unless certain
-- If unsure, say "possible"
-- Give simple step-by-step advice
-- Keep response short (max 150 words)
-- Answer in English + Malayalam
+- Give practical agricultural advice
+- Mention chemicals and dosage when relevant
+- Mention organic alternatives when possible
+- Keep answer under 150 words
+- Respond in English and Malayalam
 """
 
     content = [{"type": "text", "text": prompt}]
 
-    # -------- IMAGE --------
     if image_bytes:
+
         encoded = base64.b64encode(image_bytes).decode("utf-8")
+
         content.append({
             "type": "image_url",
             "image_url": f"data:{image.content_type};base64,{encoded}"
         })
 
-    # -------- GEMINI CALL --------
     try:
+
         response = llm.invoke([HumanMessage(content=content)])
+
         final_text = response.content[:800]
+
     except Exception as e:
+
         print("❌ Gemini Error:", e)
+
         return {
             "response": "AI service temporarily unavailable. Try again later."
         }
 
-    # -------- CACHE SAVE --------
     cache[cache_key] = final_text
 
     return {"response": final_text}
 
-
 # ================== RUN SERVER ==================
+
 if __name__ == "__main__":
+
     import uvicorn
+
     print("🚀 FastAPI running on http://127.0.0.1:8000")
+
     uvicorn.run(app, host="127.0.0.1", port=8000)

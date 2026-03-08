@@ -1,24 +1,48 @@
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-# 1. Load the same embedding model
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+print("🔍 Loading embeddings...")
 
-# 2. Connect to the existing database
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
+
+print("📂 Connecting to Chroma database...")
+
 db = Chroma(
-    persist_directory="./chroma_db", 
+    persist_directory="./chroma_db",
     embedding_function=embeddings,
     collection_name="agri_rag"
 )
 
-# 3. Ask a question (It doesn't have to match the JSON exactly!)
-query = "What should I do if my banana plants have yellow spots?"
+retriever = db.as_retriever(search_kwargs={"k": 3})
 
-# 4. Search for the top 2 matches
-results = db.similarity_search(query, k=2)
+while True:
 
-print("\n🔎 --- Search Results ---")
-for i, doc in enumerate(results):
-    print(f"\nResult #{i+1}:")
-    print(doc.page_content)
-    print("-" * 30)
+    query = input("\nAsk a farming question: ")
+
+    if query.lower() in ["exit", "quit"]:
+        break
+
+    # Boost query with agriculture keywords (English + Malayalam)
+    boosted_query = query + " farming agriculture crop disease pest kerala കൃഷി രോഗം കീടം വാഴ നെല്ല്"
+
+    docs1 = retriever.invoke(query)
+    docs2 = retriever.invoke(boosted_query)
+
+    seen = set()
+    docs = []
+
+    for d in docs1 + docs2:
+        if d.page_content not in seen:
+            docs.append(d)
+            seen.add(d.page_content)
+
+    docs = docs[:3]
+
+    print("\n🔎 --- Search Results ---")
+
+    for i, doc in enumerate(docs):
+        print(f"\nResult #{i+1}")
+        print(doc.page_content)
+        print("-" * 40)

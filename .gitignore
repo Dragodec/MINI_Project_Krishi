@@ -69,4 +69,5 @@ public/uploads/
 AI_simulation/venv
 
 AI_simulation/chroma_db/
+AI_simulation/Jsons/
 *.sqlite3
