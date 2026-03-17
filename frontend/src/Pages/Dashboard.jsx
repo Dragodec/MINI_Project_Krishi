@@ -9,8 +9,9 @@ import {
   AlertCircle,
   Loader2,
   Bell,
-  Zap,
-  ChevronRight // Added the missing import here
+  ChevronRight,
+  ShieldCheck,
+  Leaf
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../API/axiosInstance';
@@ -49,7 +50,7 @@ const Dashboard = () => {
     );
   }
 
-  const { user, stats, recentAnalyses, advisories } = dashboardData;
+  const { user, stats, recentAnalyses, advisories, weather } = dashboardData;
 
   return (
     <main className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto w-full">
@@ -60,9 +61,10 @@ const Dashboard = () => {
             {greeting}, <span className="text-emerald-600">{user.name.split(' ')[0]}</span>
           </h1>
           <p className="text-slate-500 mt-2 font-medium italic">
-            Your field intelligence is up to date.
+            Your farming station is active and monitoring.
           </p>
         </div>
+        
         <button 
           onClick={() => navigate('/queries')} 
           className="bg-slate-900 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl flex items-center gap-3 font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-slate-200"
@@ -71,38 +73,62 @@ const Dashboard = () => {
         </button>
       </header>
 
-      {/* PRIMARY ACTION SECTION - Focused on Multi-modal Entry */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        {/* Weather Card */}
+      {/* PRIMARY GRID */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        
+        {/* Card 1: Weather Station - NOW DYNAMIC */}
         <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-8 rounded-[2.5rem] text-white shadow-lg shadow-emerald-100 flex flex-col justify-between group">
           <div>
             <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl w-fit mb-6 group-hover:scale-110 transition-transform">
               <CloudSun size={32} />
             </div>
-            <h3 className="text-2xl font-black mb-2">Local Weather Station</h3>
-            <p className="text-emerald-50 text-sm font-medium mb-6 leading-relaxed opacity-80">
-              Conditions are currently optimal for foliar spray and fertilization in your area.
+            <h3 className="text-2xl font-black mb-2">
+              {weather ? `${weather.temp}°C` : "Weather Station"}
+            </h3>
+            <p className="text-emerald-50 text-sm font-medium mb-6 leading-relaxed opacity-90 min-h-[40px]">
+              {weather ? weather.condition : "Fetching local environmental data..."}
             </p>
           </div>
-          <button onClick={() => navigate('/weather')} className="bg-white text-emerald-800 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest self-start transition-all hover:bg-emerald-50">
+          <button 
+            onClick={() => navigate('/weather')} 
+            className="bg-white text-emerald-800 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest self-start transition-all hover:bg-emerald-50"
+          >
             Open Forecast
           </button>
         </div>
 
-        {/* Unified Agri-GPT Card (Text/Image/Audio combined) */}
-        <div onClick={() => navigate('/queries')} className="bg-white p-8 rounded-[2.5rem] border-2 border-emerald-50 shadow-sm hover:shadow-xl hover:border-emerald-100 transition-all cursor-pointer flex flex-col justify-between group">
+        {/* Card 2: History Logs */}
+        <div onClick={() => navigate('/history')} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm hover:shadow-xl hover:border-slate-200 transition-all cursor-pointer flex flex-col justify-between group">
           <div>
-            <div className="bg-emerald-50 text-emerald-600 p-3 rounded-2xl w-fit mb-6 group-hover:rotate-12 transition-transform">
-              <Zap size={32} fill="currentColor" />
+            <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl w-fit mb-6 group-hover:rotate-12 transition-transform">
+              <History size={32} />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Agri-GPT AI</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">History Logs</h3>
             <p className="text-slate-500 text-sm font-medium mb-6 leading-relaxed">
-              Upload pest images, record voice notes, or chat about soil health in one place.
+              Review your previous {stats.totalQueries} transmissions and AI diagnostic results.
             </p>
           </div>
-          <div className="flex items-center text-emerald-600 font-black text-xs uppercase tracking-widest">
-            Launch Station <ChevronRight size={16} className="ml-1 group-hover:translate-x-2 transition-transform" />
+          <div className="flex items-center text-blue-600 font-black text-xs uppercase tracking-widest">
+            View Records <ChevronRight size={16} className="ml-1 group-hover:translate-x-2 transition-transform" />
           </div>
+        </div>
+
+        {/* Card 3: Station Status */}
+        <div className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm flex flex-col justify-between group">
+          <div>
+            <div className="bg-slate-100 text-slate-600 p-3 rounded-2xl w-fit mb-6"><ShieldCheck size={32} /></div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Station Status</h3>
+            <p className="text-slate-500 text-sm font-medium leading-relaxed mb-4">
+              All systems operational. Multimodal RAG node connected.
+            </p>
+            <div className="flex items-center gap-2 mb-6">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Active</span>
+            </div>
+          </div>
+          <button onClick={() => navigate('/profile')} className="text-slate-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-widest text-left">
+            Manage Node Settings
+          </button>
         </div>
       </section>
 
@@ -125,7 +151,6 @@ const Dashboard = () => {
 
       {/* LOWER CONTENT AREA */}
       <section className="grid lg:grid-cols-2 gap-8">
-        {/* RECENT ANALYSES */}
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <div className="p-8 border-b border-slate-50 flex items-center justify-between">
             <h3 className="font-black text-xl text-slate-900 tracking-tight">Recent Logs</h3>
@@ -135,7 +160,7 @@ const Dashboard = () => {
             {recentAnalyses.length > 0 ? recentAnalyses.map((item, i) => (
               <div key={i} className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
                 <div className="flex items-center gap-4">
-                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center font-black ${item.issue === 'Healthy' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                  <div className={`h-12 w-12 rounded-xl flex items-center justify-center font-black ${item.issue === 'Issue Detected' ? 'bg-red-50 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
                     {item.crop.charAt(0)}
                   </div>
                   <div>
@@ -149,7 +174,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* ADVISORIES */}
+        {/* ADVISORIES - NOW DYNAMIC FROM BACKEND */}
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-8 border-b border-slate-50 flex items-center gap-3">
             <div className="bg-amber-100 text-amber-600 p-2 rounded-lg"><Bell size={18} /></div>

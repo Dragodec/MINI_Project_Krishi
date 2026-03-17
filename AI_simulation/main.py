@@ -3,6 +3,7 @@ import base64
 import hashlib
 from fastapi import FastAPI, UploadFile, File, Form
 from dotenv import load_dotenv
+
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -57,6 +58,58 @@ def get_cache_key(text, image_bytes):
 
     return m.hexdigest()
 
+# ================== SYSTEM PROMPT ==================
+
+SYSTEM_PROMPT = """
+You are an experienced Kerala Krishi Bhavan agricultural officer helping farmers diagnose crop problems.
+
+Your goal is to give **practical field-level advice** using the agricultural knowledge provided.
+
+Follow these guidelines strictly:
+
+1. Diagnose carefully.
+   - Never claim absolute certainty.
+   - Use phrases like:
+     • "most likely caused by"
+     • "commonly due to"
+     • "another possible reason is"
+
+2. Suggest field inspection steps.
+   - Tell the farmer what to check on the crop
+   - Example: underside of leaves, root rot, insect presence
+
+3. Provide practical treatment.
+   - Mention recommended fertilizers, pesticides, or organic options
+   - Include dosage or method when possible
+
+4. Always suggest prevention.
+   - Balanced fertilizer
+   - drainage improvement
+   - pest monitoring
+
+5. If the problem cannot be confidently diagnosed:
+   - Recommend contacting the nearest Krishi Bhavan for a field visit.
+
+6. Use simple farmer-friendly language.
+
+7. Keep the response under 150 words.
+
+8. Structure your answer like this:
+
+Dear farmer,
+
+• Likely cause
+• What to check in the field
+• Practical treatment
+• Prevention advice
+
+Then provide the same advice in **Malayalam** below a separator line:
+
+---
+
+Malayalam translation
+"""
+
 # ================== API ==================
 
 @app.post("/process")
@@ -81,6 +134,8 @@ async def process_query(
 
     context = ""
 
+    # ================== RAG RETRIEVAL ==================
+
     if text:
 
         boosted_query = text + " farming agriculture crop disease pest kerala കൃഷി രോഗം കീടം വാഴ നെല്ല്"
@@ -102,31 +157,26 @@ async def process_query(
 
     if not context.strip() and not image:
         return {
-            "response": "I am not sure. Please consult a local agricultural officer."
+            "response": "I am not sure about this issue. Please consult your nearest Krishi Bhavan agricultural officer."
         }
 
     context = context[:1500]
 
+    # ================== FINAL PROMPT ==================
+
     prompt = f"""
-You are a Kerala Krishi Bhavan agricultural officer.
+{SYSTEM_PROMPT}
 
-Use the agricultural knowledge below to answer the farmer's question.
-
-Context:
+Agricultural Knowledge:
 {context}
 
 Farmer Question:
-{text if text else "Analyze the image."}
-
-Rules:
-- Give practical agricultural advice
-- Mention chemicals and dosage when relevant
-- Mention organic alternatives when possible
-- Keep answer under 150 words
-- Respond in English and Malayalam
+{text if text else "Analyze the uploaded crop image and diagnose the issue."}
 """
 
     content = [{"type": "text", "text": prompt}]
+
+    # ================== IMAGE SUPPORT ==================
 
     if image_bytes:
 
@@ -137,18 +187,20 @@ Rules:
             "image_url": f"data:{image.content_type};base64,{encoded}"
         })
 
+    # ================== LLM CALL ==================
+
     try:
 
         response = llm.invoke([HumanMessage(content=content)])
 
-        final_text = response.content[:800]
+        final_text = response.content
 
     except Exception as e:
 
         print("❌ Gemini Error:", e)
 
         return {
-            "response": "AI service temporarily unavailable. Try again later."
+            "response": "AI service temporarily unavailable. Please try again later."
         }
 
     cache[cache_key] = final_text

@@ -8,6 +8,7 @@ import Dashboard from './Pages/Dashboard';
 import Weather from './Pages/Weather';
 import Profile from './Pages/Profile';
 import AIQueries from './Pages/AIQueries';
+import FieldAnalysis from './Pages/FieldAnalysis';
 import ProtectedRoute from './Components/ProtectedRoute';
 import Layout from './Components/Layout';
 
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/queries" element={<AIQueries />} />
                 <Route path="/queries/:chatId" element={<AIQueries />} />
+                <Route path="/field-analysis" element={<FieldAnalysis />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

@@ -61,7 +61,7 @@ const Weather = () => {
   // Calculation for SVG Gauge
   const radius = 100;
   const circumference = 2 * Math.PI * radius;
-  const sprayScore = 98; // This would ideally come from data.current.sprayScore
+  const sprayScore = data.sprayScore || 0;
   const offset = circumference - (sprayScore / 100) * circumference;
 
   return (

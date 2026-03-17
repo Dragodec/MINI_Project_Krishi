@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, MessageSquare, History, Leaf, 
-  LogOut, CloudSun, Loader2, ChevronRight
+  LayoutDashboard, 
+  MessageSquare, 
+  Leaf, 
+  LogOut, 
+  CloudSun, 
+  Loader2, 
+  ChevronRight,
+  ThermometerSun // Replaced History with Environment/Soil icon
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../API/axiosInstance';
@@ -42,7 +48,8 @@ const Layout = ({ children }) => {
     { label: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
     { label: 'Agri-GPT', icon: <MessageSquare size={20} />, path: '/queries' },
     { label: 'Weather', icon: <CloudSun size={20} />, path: '/weather' },
-    { label: 'History', icon: <History size={20} />, path: '/history' },
+    // Replaced History with Field Hub
+    { label: 'Field Hub', icon: <ThermometerSun size={20} />, path: '/field-analysis' },
   ];
 
   if (loading) return (
@@ -56,10 +63,10 @@ const Layout = ({ children }) => {
       {/* SIDEBAR */}
       <aside className="w-72 bg-white border-r border-slate-200 hidden lg:flex flex-col sticky top-0 h-screen z-50">
         <div className="p-8 flex items-center gap-3">
-          <div className="bg-emerald-600 p-2 rounded-xl shadow-lg text-white">
+          <div className="bg-emerald-600 p-2 rounded-xl shadow-lg text-white shadow-emerald-100">
             <Leaf size={24} />
           </div>
-          <span className="font-bold text-2xl tracking-tight text-slate-900">AgriAI</span>
+          <span className="font-black text-2xl tracking-tight text-slate-900">AgriAI</span>
         </div>
 
         <nav className="flex-1 px-4 space-y-2">
@@ -69,10 +76,10 @@ const Layout = ({ children }) => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold transition-all duration-200 ${
+                className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all duration-200 ${
                   isActive 
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-100' 
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-emerald-600'
                 }`}
               >
                 {item.icon} {item.label}
@@ -92,11 +99,11 @@ const Layout = ({ children }) => {
               className="flex items-center gap-3 px-2 py-3 mb-2 cursor-pointer hover:bg-white hover:shadow-sm rounded-xl transition-all border border-transparent hover:border-slate-200"
             >
               <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm">
-                {user.name.charAt(0)}
+                {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 overflow-hidden">
                 <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{user.role}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{user.role}</p>
               </div>
               <ChevronRight size={14} className="text-slate-300" />
             </div>
@@ -110,15 +117,15 @@ const Layout = ({ children }) => {
         </div>
       </aside>
 
-      {/* MOBILE HEADER */}
+      {/* MOBILE HEADER & CONTENT */}
       <main className="flex-1 overflow-y-auto relative">
-        <div className="lg:hidden bg-white border-b p-4 sticky top-0 z-40 flex justify-between items-center">
+        <div className="lg:hidden bg-white border-b border-slate-100 p-4 sticky top-0 z-40 flex justify-between items-center backdrop-blur-md bg-white/80">
              <div className="flex items-center gap-2">
                 <Leaf className="text-emerald-600" size={20} />
-                <span className="font-bold text-slate-900">AgriAI</span>
+                <span className="font-black text-slate-900 tracking-tight">AgriAI</span>
              </div>
-             <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-bold">
-                {user?.name.charAt(0)}
+             <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-bold shadow-md shadow-emerald-100">
+                {user?.name.charAt(0).toUpperCase()}
              </button>
         </div>
         <div className="w-full">{children}</div>
