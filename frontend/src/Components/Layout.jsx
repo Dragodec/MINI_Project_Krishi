@@ -8,7 +8,8 @@ import {
   CloudSun, 
   Loader2, 
   ChevronRight,
-  ThermometerSun // Replaced History with Environment/Soil icon
+  ThermometerSun,
+  Map
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../API/axiosInstance';
@@ -48,8 +49,8 @@ const Layout = ({ children }) => {
     { label: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
     { label: 'Agri-GPT', icon: <MessageSquare size={20} />, path: '/queries' },
     { label: 'Weather', icon: <CloudSun size={20} />, path: '/weather' },
-    // Replaced History with Field Hub
     { label: 'Field Hub', icon: <ThermometerSun size={20} />, path: '/field-analysis' },
+    { label: 'Outbreak Map', icon: <Map size={20} />, path: '/community-map' },
   ];
 
   if (loading) return (

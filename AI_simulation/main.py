@@ -3,6 +3,8 @@ import base64
 import hashlib
 from fastapi import FastAPI, UploadFile, File, Form
 from dotenv import load_dotenv
+import json
+
 
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -207,7 +209,43 @@ Farmer Question:
 
     return {"response": final_text}
 
+# ================== AUTOMATED TASKS ==================
+
+@app.post("/generate-tasks")
+async def generate_tasks(
+    crop: str = Form(...),
+    plantingDate: str = Form(...)
+):
+    system_prompt = f"""
+You are an expert agricultural planner. Provide a lifecycle calendar for '{crop}' planted on '{plantingDate}'.
+Return EXACTLY a JSON array of 5 to 7 crucial tasks.
+Format your response purely as a valid JSON array. Do not include any Markdown like ```json.
+Example format:
+[
+  {{"title": "Seed Treatment", "description": "Apply fungicide before sowing", "daysFromPlanting": 0}},
+  {{"title": "First Fertilizer", "description": "Apply NPK", "daysFromPlanting": 15}}
+]
+"""
+    try:
+        response = llm.invoke([HumanMessage(content=[{"type": "text", "text": system_prompt}])])
+        # Try to parse json to ensure it's valid, clean up backticks if any
+        raw_text = response.content.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        if raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+        
+        raw_text = raw_text.strip()
+        tasks = json.loads(raw_text)
+        return {"tasks": tasks}
+    except Exception as e:
+        print("❌ Gemini Task Error:", e)
+        return {"error": "Failed to generate tasks via AI."}
+
 # ================== RUN SERVER ==================
+
 
 if __name__ == "__main__":
 

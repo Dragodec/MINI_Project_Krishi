@@ -31,6 +31,7 @@ exports.getDashboardStats = async (req, res) => {
 
             if (recentAnalyses.length < 4) {
                 recentAnalyses.push({
+                    id: convo._id,
                     crop: convo.title.length > 25 ? convo.title.substring(0, 25) + "..." : convo.title,
                     issue: isDisease ? "Issue Detected" : "Healthy / Info",
                     score: hasImage ? "AI Image Analysis" : "Voice/Text Query",
@@ -38,6 +39,25 @@ exports.getDashboardStats = async (req, res) => {
                 });
             }
         });
+
+        // 4. Generate Proactive AI Follow-Ups
+        const followUps = [];
+        // Scan for the most recent conversation where a disease was flagged older than 1 minute (for demo testing validity)
+        const recentDiseaseConvo = conversations.find(c => {
+            const hasDisease = diseaseKeywords.some(kw => c.messages.some(m => m.role === 'assistant' && (m.text||"").toLowerCase().includes(kw)));
+            const isOldEnough = (new Date() - new Date(c.updatedAt)) > 60000; 
+            return hasDisease && isOldEnough;
+        });
+
+        if (recentDiseaseConvo) {
+            const daysAgo = Math.floor((new Date() - new Date(recentDiseaseConvo.updatedAt)) / (1000 * 60 * 60 * 24));
+            followUps.push({
+                chatId: recentDiseaseConvo._id,
+                title: recentDiseaseConvo.title,
+                message: `Checking in: Did the recommended treatment clear up the issue regarding your "${recentDiseaseConvo.title}"?`,
+                daysAgo: daysAgo === 0 ? "1 hr" : daysAgo
+            });
+        }
 
         // 3. Generate Weather-Based Advisories
         const advisories = [];
@@ -59,7 +79,7 @@ exports.getDashboardStats = async (req, res) => {
         advisories.push({ title: "Market Update", desc: "Wholesale prices for organic tomatoes rose by 12% in the local market.", type: "blue" });
 
         res.json({
-            user: { name: user.name, role: user.role },
+            user: { name: user.name, role: user.role, _id: user._id },
             stats: {
                 totalQueries,
                 diseasesDetected,
@@ -70,7 +90,8 @@ exports.getDashboardStats = async (req, res) => {
                 condition: weather.recommendations[0] || "All systems stable"
             } : null,
             recentAnalyses,
-            advisories
+            advisories,
+            followUps
         });
 
     } catch (err) {

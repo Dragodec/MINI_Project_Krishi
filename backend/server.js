@@ -14,6 +14,8 @@ const weatherRoutes = require('./routes/weatherRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const soilRoutes = require('./routes/soilRoutes'); // New Integration
 const usageRoutes = require('./routes/dev/usageRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const heatmapRoutes = require('./routes/heatmapRoutes');
 
 const { protect } = require('./middleware/authMiddleware');
 const corsOptions = require('./config/corsOptions');
@@ -66,7 +68,11 @@ app.use('/api/chat', chatRoutes);
 // New Integration: Soil Simulation & Plot Management
 app.use('/api/soil', protect, soilRoutes); 
 
+app.use('/api/tasks', taskRoutes);
+app.use('/api/heatmap', heatmapRoutes);
+
 app.use('/api/usage', protect, usageRoutes);
+
 
 // --- ⚠️ GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {

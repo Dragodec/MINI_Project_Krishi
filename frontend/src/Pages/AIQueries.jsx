@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../API/axiosInstance';
 import { 
   Send, Mic, Image as ImageIcon, Loader2, X,
-  Sprout, Trash2, Clock, Calendar, Leaf, Volume2, Plus, Edit3
+  Sprout, Trash2, Clock, Calendar, Leaf, Volume2, Plus, Edit3, Share2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -145,6 +145,12 @@ const AIQueries = () => {
     }
   };
 
+  const shareToWhatsApp = (text) => {
+    const message = `🌱 *Krishi Officer AI Advisory*\n\n${text}\n\n_Shared from Agri-GPT Network_`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return toast.error("Browser not supported");
@@ -234,9 +240,21 @@ const AIQueries = () => {
                 </div>
               )}
 
-              <span className={`text-[9px] font-black uppercase tracking-tighter mt-3 block opacity-30 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                {msg.role === 'user' ? 'Farmer Node' : 'Krishi Officer AI'}
-              </span>
+              <div className={`mt-3 flex items-center justify-between ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <span className="text-[9px] font-black uppercase tracking-tighter opacity-30">
+                  {msg.role === 'user' ? 'Farmer Node' : 'Krishi Officer AI'}
+                </span>
+                
+                {msg.role === 'assistant' && msg.text && (
+                  <button 
+                    onClick={() => shareToWhatsApp(msg.text)}
+                    title="Forward to WhatsApp Community"
+                    className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#25D366] hover:bg-[#25D366]/10 px-2.5 py-1.5 rounded-lg active:scale-95 transition-all border border-[#25D366]/20"
+                  >
+                    <Share2 size={12} /> Share
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}

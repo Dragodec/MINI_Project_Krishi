@@ -3,7 +3,7 @@ import {
   Sprout, Droplets, Thermometer, Activity, AlertCircle, 
   RefreshCw, MapPin, Waves, CheckCircle2, CloudRain, 
   Droplet, Wind, X, Info, ChevronRight, Loader2,
-  Mountain, Trees, Sun, RotateCcw, Zap
+  Mountain, Trees, Sun, RotateCcw, Zap, FlaskConical
 } from 'lucide-react';
 import axiosInstance from '../API/axiosInstance';
 import { toast } from 'react-hot-toast';
@@ -194,6 +194,8 @@ const FieldAnalysis = () => {
                 </div>
             </div>
             
+            <DosageCalculator />
+
             {/* Advice Box */}
             <div className="bg-slate-900 rounded-[3rem] p-8 text-white shadow-2xl relative overflow-hidden group">
                <Sprout size={100} className="absolute -bottom-4 -right-4 opacity-10 group-hover:scale-110 transition-transform" />
@@ -325,6 +327,74 @@ const SetupModal = ({ onCreated }) => {
             {loading ? "Syncing..." : "Activate Station"}
           </button>
         </form>
+      </div>
+    </div>
+  );
+};
+
+const DosageCalculator = () => {
+  const [size, setSize] = useState(1);
+  const [unit, setUnit] = useState('acre');
+  const [chemical, setChemical] = useState('neem_oil');
+
+  const chemicals = {
+    npk_19: { name: 'NPK 19:19:19 (Foliar)', calc: (acres) => `${(5 * acres).toFixed(1)} Kg` },
+    urea: { name: 'Urea (Top Dress)', calc: (acres) => `${(45 * acres).toFixed(1)} Kg` },
+    neem_oil: { name: 'Neem Oil 10000ppm', calc: (acres) => `${(1 * acres).toFixed(1)} Liters + ${(200 * acres).toFixed(0)}L Water` },
+    copper_50wp: { name: 'Copper Fungicide 50%', calc: (acres) => `${(1 * acres).toFixed(1)} Kg` },
+    bordeaux: { name: 'Bordeaux (1%)', calc: (acres) => `${(4 * acres).toFixed(1)}kg CuSO4 + ${(4 * acres).toFixed(1)}kg Lime` },
+    tricho: { name: 'Trichoderma Viride', calc: (acres) => `${(2.5 * acres).toFixed(1)} Kg + ${(50 * acres).toFixed(0)}kg Compost` },
+  };
+
+  const getAcres = () => {
+    const val = parseFloat(size) || 0;
+    if (unit === 'hectare') return val * 2.47105;
+    if (unit === 'cent') return val * 0.01;
+    return val;
+  };
+
+  const acres = getAcres();
+  const rawOutput = chemicals[chemical].calc(acres);
+
+  return (
+    <div className="bg-white rounded-[3rem] p-8 shadow-sm hover:shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden group hover:border-indigo-200 transition-all">
+      <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
+      <h3 className="font-black text-slate-900 mb-6 flex items-center gap-2 relative z-10">
+        <FlaskConical size={18} className="text-indigo-500" /> Rx Dosage Engine
+      </h3>
+      
+      <div className="space-y-4 relative z-10">
+        <div className="flex gap-3">
+            <input 
+              type="number" min="0.1" step="0.1"
+              value={size} onChange={e => setSize(e.target.value)}
+              className="w-1/2 bg-slate-50 border-none rounded-2xl p-4 font-black text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 text-center shadow-inner"
+            />
+            <select 
+              value={unit} onChange={e => setUnit(e.target.value)}
+              className="w-1/2 bg-slate-50 border-none rounded-2xl p-4 font-black text-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none text-center cursor-pointer shadow-inner hover:bg-slate-100 transition-colors"
+            >
+              <option value="acre">Acres</option>
+              <option value="hectare">Hectares</option>
+              <option value="cent">Cents</option>
+            </select>
+        </div>
+        
+        <select 
+          value={chemical} onChange={e => setChemical(e.target.value)}
+          className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer shadow-inner hover:bg-slate-100 transition-colors"
+        >
+          {Object.entries(chemicals).map(([k, v]) => (
+            <option key={k} value={k}>{v.name}</option>
+          ))}
+        </select>
+
+        <div className="mt-6 pt-2">
+            <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100 flex flex-col items-center justify-center text-center group-hover:border-indigo-300 transition-colors">
+                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">Required Farm Volume</p>
+                <p className="text-xl font-black text-indigo-700 whitespace-nowrap leading-tight">{rawOutput}</p>
+            </div>
+        </div>
       </div>
     </div>
   );
