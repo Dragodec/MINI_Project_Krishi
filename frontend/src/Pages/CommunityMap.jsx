@@ -7,6 +7,9 @@ import { toast } from 'react-hot-toast';
 import L from 'leaflet';
 import { sampleData } from './sampleHeatmapData';
 
+import { useLanguage } from '../Context/LanguageContext';
+import { TRANSLATIONS } from '../Constants/Translations';
+
 // Fix for default marker icons in Leaflet with Webpack/Vite
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -28,6 +31,9 @@ const getSeverityColor = (severity) => {
 };
 
 const CommunityMap = () => {
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].map;
+
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -41,7 +47,7 @@ const CommunityMap = () => {
     severity: 'Medium',
     lat: 10.8505,
     lng: 76.2711,
-    district: 'Wayanad'
+    district: language === 'ml' ? 'വയനാട്' : 'Wayanad'
   });
 
   useEffect(() => {
@@ -61,7 +67,7 @@ const CommunityMap = () => {
       const res = await axiosInstance.get('/heatmap/data');
       setReports(res.data);
     } catch (err) {
-      toast.error('Failed to load community heatmap');
+      toast.error(t.toasts.loadFail);
     } finally {
       setLoading(false);
     }
@@ -81,11 +87,11 @@ const CommunityMap = () => {
             district: reportForm.district
         }
       });
-      toast.success("Disease reported to community map!");
+      toast.success(t.toasts.success);
       setShowReportModal(false);
       fetchHeatmapData(); // Refresh map
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to submit report");
+      toast.error(err.response?.data?.error || t.toasts.submitFail);
     } finally {
       setSubmitting(false);
     }
@@ -102,9 +108,9 @@ const CommunityMap = () => {
                 <div className="bg-red-100 text-red-600 p-2 rounded-xl">
                     <ShieldAlert size={24} />
                 </div>
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight">Community Heatmap</h1>
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight">{t.title}</h1>
             </div>
-            <p className="text-slate-500 font-medium">Real-time local disease tracking to prevent epidemic spread.</p>
+            <p className="text-slate-500 font-medium">{t.subtitle}</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -113,18 +119,18 @@ const CommunityMap = () => {
                <button 
                   onClick={() => setSimulateMode(false)}
                   className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${!simulateMode ? 'bg-white shadow text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
-               >Live Data</button>
+               >{t.liveData}</button>
                <button 
                   onClick={() => setSimulateMode(true)}
                   className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${simulateMode ? 'bg-indigo-600 shadow-md shadow-indigo-200 text-white' : 'text-slate-400 hover:text-slate-600'}`}
-               >Demo Mode</button>
+               >{t.demoMode}</button>
              </div>
 
              <button 
                 onClick={() => setShowReportModal(true)}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-3.5 rounded-full flex items-center gap-2 font-bold shadow-xl shadow-red-200 transition-all active:scale-95 uppercase tracking-widest text-xs"
              >
-                <PlusCircle size={18} /> Report Outbreak
+                <PlusCircle size={18} /> {t.reportBtn}
              </button>
           </div>
         </header>
@@ -150,7 +156,6 @@ const CommunityMap = () => {
               {(simulateMode ? sampleData : reports).map((report) => (
                 <CircleMarker
                   key={report._id}
-                  // MongoDB stores [lng, lat], Leaflet needs [lat, lng]
                   center={[report.location.coordinates[1], report.location.coordinates[0]]}
                   pathOptions={{ 
                     color: getSeverityColor(report.severity), 
@@ -165,7 +170,7 @@ const CommunityMap = () => {
                       <p className="text-xs text-slate-500 mb-2 border-b pb-2"><span className="font-bold text-emerald-600">{report.cropName}</span> • {report.location.district}</p>
                       <div className="flex items-center gap-2">
                          <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md text-white`} style={{ backgroundColor: getSeverityColor(report.severity) }}>
-                             {report.severity} Risk
+                             {report.severity} {t.popup.risk}
                          </span>
                          <span className="text-[10px] text-slate-400 font-bold">{new Date(report.createdAt).toLocaleDateString()}</span>
                       </div>
@@ -182,21 +187,21 @@ const CommunityMap = () => {
             <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm flex items-center gap-4">
                 <div className="bg-red-50 text-red-500 p-4 rounded-2xl"><Bug size={24} /></div>
                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Threats</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.stats.threats}</p>
                    <p className="text-2xl font-black text-slate-900">{(simulateMode ? sampleData : reports).filter(r => r.severity === 'High').length}</p>
                 </div>
             </div>
             <div className="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm flex items-center gap-4">
                 <div className="bg-amber-50 text-amber-500 p-4 rounded-2xl"><Activity size={24} /></div>
                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monitoring</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.stats.monitoring}</p>
                    <p className="text-2xl font-black text-slate-900">{(simulateMode ? sampleData : reports).filter(r => r.severity === 'Medium').length}</p>
                 </div>
             </div>
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
                 <div className="bg-blue-50 text-blue-500 p-4 rounded-2xl"><MapPin size={24} /></div>
                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Reports (30d)</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.stats.total}</p>
                    <p className="text-2xl font-black text-slate-900">{(simulateMode ? sampleData : reports).length}</p>
                 </div>
             </div>
@@ -211,44 +216,44 @@ const CommunityMap = () => {
              <div className="bg-red-600 p-8 text-white relative">
                 <button onClick={() => setShowReportModal(false)} className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"><X size={20}/></button>
                 <AlertTriangle size={40} className="mb-4 text-red-200" />
-                <h2 className="text-3xl font-black tracking-tight leading-none">Report Outbreak</h2>
-                <p className="text-red-200 text-xs font-bold uppercase tracking-widest mt-2">Alert nearby farmers</p>
+                <h2 className="text-3xl font-black tracking-tight leading-none">{t.modal.title}</h2>
+                <p className="text-red-200 text-xs font-bold uppercase tracking-widest mt-2">{t.modal.badge}</p>
              </div>
 
              <form onSubmit={handleReportSubmit} className="p-8 space-y-5">
                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Crop Name</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">{t.modal.crop}</label>
                     <input required className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold placeholder:text-slate-300 mt-1 outline-none focus:ring-2 focus:ring-red-500/20" 
-                        placeholder="e.g. Banana" value={reportForm.cropName} onChange={e => setReportForm({...reportForm, cropName: e.target.value})} />
+                        placeholder={language === 'ml' ? "ഉദാ: വാഴ" : "e.g. Banana"} value={reportForm.cropName} onChange={e => setReportForm({...reportForm, cropName: e.target.value})} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">District</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">{t.modal.district}</label>
                     <input required className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold placeholder:text-slate-300 mt-1 outline-none focus:ring-2 focus:ring-red-500/20" 
-                        placeholder="e.g. Wayanad" value={reportForm.district} onChange={e => setReportForm({...reportForm, district: e.target.value})} />
+                        placeholder={language === 'ml' ? "ഉദാ: വയനാട്" : "e.g. Wayanad"} value={reportForm.district} onChange={e => setReportForm({...reportForm, district: e.target.value})} />
                   </div>
                </div>
 
                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Disease / Pest Name</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">{t.modal.disease}</label>
                   <input required className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold placeholder:text-slate-300 mt-1 outline-none focus:ring-2 focus:ring-red-500/20" 
-                      placeholder="e.g. Bunchy Top Virus" value={reportForm.diseaseName} onChange={e => setReportForm({...reportForm, diseaseName: e.target.value})} />
+                      placeholder={language === 'ml' ? "ഉദാ: കുരുടൻ കേട്" : "e.g. Bunchy Top Virus"} value={reportForm.diseaseName} onChange={e => setReportForm({...reportForm, diseaseName: e.target.value})} />
                </div>
 
                <div>
-                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Severity Level</label>
+                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">{t.modal.severity}</label>
                  <select className="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold outline-none focus:ring-2 focus:ring-red-500/20 appearance-none mt-1" 
                     value={reportForm.severity} onChange={e => setReportForm({...reportForm, severity: e.target.value})}>
-                     <option value="Low">Low - Contained / Minor Signs</option>
-                     <option value="Medium">Medium - Spreading Fast</option>
-                     <option value="High">High - Severe Epidemic Risk</option>
+                     <option value="Low">{t.modal.severityOptions.low}</option>
+                     <option value="Medium">{t.modal.severityOptions.medium}</option>
+                     <option value="High">{t.modal.severityOptions.high}</option>
                  </select>
                </div>
 
                <div className="pt-4">
                  <button disabled={submitting} type="submit" className="w-full bg-red-600 text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 disabled:opacity-50 text-sm uppercase tracking-widest flex justify-center items-center gap-2">
                     {submitting ? <Loader2 size={18} className="animate-spin" /> : <AlertTriangle size={18} />}
-                    {submitting ? "Broadcasting Warning..." : "Broadcast Warning"}
+                    {submitting ? t.modal.submitting : t.modal.submit}
                  </button>
                </div>
              </form>

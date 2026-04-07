@@ -9,15 +9,22 @@ import {
   Loader2, 
   ChevronRight,
   ThermometerSun,
-  Map
+  Map,
+  Globe
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../API/axiosInstance';
 import UsageStats from './UsageStats';
 
+import { useLanguage } from '../Context/LanguageContext';
+import { TRANSLATIONS } from '../Constants/Translations';
+
 const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language, toggleLanguage } = useLanguage();
+  const t = TRANSLATIONS[language].layout;
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -38,19 +45,19 @@ const Layout = ({ children }) => {
   const handleLogout = async () => {
     try {
       await axiosInstance.post('/auth/logout');
-      toast.success("Logged out successfully");
+      toast.success(t.toasts.logoutSuccess);
       navigate('/login');
     } catch (err) {
-      toast.error("Logout failed");
+      toast.error(t.toasts.logoutFail);
     }
   };
 
   const menuItems = [
-    { label: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-    { label: 'Agri-GPT', icon: <MessageSquare size={20} />, path: '/queries' },
-    { label: 'Weather', icon: <CloudSun size={20} />, path: '/weather' },
-    { label: 'Field Hub', icon: <ThermometerSun size={20} />, path: '/field-analysis' },
-    { label: 'Outbreak Map', icon: <Map size={20} />, path: '/community-map' },
+    { label: t.menu.dashboard, icon: <LayoutDashboard size={20} />, path: '/dashboard' },
+    { label: t.menu.agriGpt, icon: <MessageSquare size={20} />, path: '/queries' },
+    { label: t.menu.weather, icon: <CloudSun size={20} />, path: '/weather' },
+    { label: t.menu.fieldHub, icon: <ThermometerSun size={20} />, path: '/field-analysis' },
+    { label: t.menu.outbreakMap, icon: <Map size={20} />, path: '/community-map' },
   ];
 
   if (loading) return (
@@ -89,6 +96,22 @@ const Layout = ({ children }) => {
           })}
         </nav>
 
+        {/* LANGUAGE SWITCHER */}
+        <div className="px-4 mb-2">
+          <button 
+            onClick={toggleLanguage}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 text-slate-600 hover:border-emerald-200 transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <Globe size={18} className="text-emerald-600" />
+              <span className="text-xs font-black uppercase tracking-widest">{t.language}</span>
+            </div>
+            <span className="text-[10px] font-black bg-white px-2 py-1 rounded-lg border border-slate-200 group-hover:text-emerald-600">
+              {language === 'ml' ? 'ENGLISH' : 'മലയാളം'}
+            </span>
+          </button>
+        </div>
+
         <div className="px-4 mb-4">
             <UsageStats />
         </div>
@@ -113,7 +136,7 @@ const Layout = ({ children }) => {
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-red-500 hover:bg-red-50 rounded-xl font-bold transition-colors"
           >
-            <LogOut size={18} /> Logout
+            <LogOut size={18} /> {t.logout}
           </button>
         </div>
       </aside>
@@ -121,13 +144,21 @@ const Layout = ({ children }) => {
       {/* MOBILE HEADER & CONTENT */}
       <main className="flex-1 overflow-y-auto relative">
         <div className="lg:hidden bg-white border-b border-slate-100 p-4 sticky top-0 z-40 flex justify-between items-center backdrop-blur-md bg-white/80">
-             <div className="flex items-center gap-2">
-                <Leaf className="text-emerald-600" size={20} />
-                <span className="font-black text-slate-900 tracking-tight">AgriAI</span>
-             </div>
-             <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-bold shadow-md shadow-emerald-100">
-                {user?.name.charAt(0).toUpperCase()}
-             </button>
+              <div className="flex items-center gap-2">
+                 <Leaf className="text-emerald-600" size={20} />
+                 <span className="font-black text-slate-900 tracking-tight">AgriAI</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={toggleLanguage}
+                  className="p-2 bg-slate-50 rounded-full text-slate-600 border border-slate-100"
+                >
+                  <Globe size={18} />
+                </button>
+                <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-emerald-600 text-white text-xs flex items-center justify-center font-bold shadow-md shadow-emerald-100">
+                  {user?.name.charAt(0).toUpperCase()}
+                </button>
+              </div>
         </div>
         <div className="w-full">{children}</div>
       </main>

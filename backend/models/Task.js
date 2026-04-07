@@ -28,4 +28,7 @@ const TaskSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Ensure tasks are sorted by date by default
+TaskSchema.index({ userId: 1, dueDate: 1 });
+
 module.exports = mongoose.model('Task', TaskSchema);

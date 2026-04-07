@@ -14,7 +14,13 @@ import {
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../API/axiosInstance';
 
+import { useLanguage } from '../Context/LanguageContext';
+import { TRANSLATIONS } from '../Constants/Translations';
+
 const Weather = () => {
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].weather;
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,12 +34,12 @@ const Weather = () => {
       setData(res.data);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update weather data");
+      toast.error(t.toasts.fail);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t.toasts.fail]);
 
   useEffect(() => {
     fetchWeather();
@@ -50,7 +56,7 @@ const Weather = () => {
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-center">
         <div>
           <RefreshCw size={48} className="animate-spin text-emerald-600 mx-auto mb-4" />
-          <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Syncing Global Data</p>
+          <p className="text-slate-400 font-black uppercase tracking-widest text-xs">{t.loading}</p>
         </div>
       </div>
     );
@@ -81,7 +87,7 @@ const Weather = () => {
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <span className="bg-emerald-500 text-white px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest">
-                    Station Active
+                    {t.hero.status}
                   </span>
                   <button onClick={() => fetchWeather(true)} className="text-slate-500 hover:text-white transition-colors">
                     <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
@@ -90,7 +96,7 @@ const Weather = () => {
                 <h1 className="text-8xl font-black tracking-tighter leading-none mb-2">
                   {data.current.temp}°
                 </h1>
-                <p className="text-slate-400 font-bold text-lg">Clear skies in your farm area</p>
+                <p className="text-slate-400 font-bold text-lg">{t.hero.clear}</p>
               </div>
             </div>
 
@@ -105,7 +111,7 @@ const Weather = () => {
                 <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-emerald-500 h-full rounded-full" style={{ width: '45%' }} />
                 </div>
-                <p className="text-[10px] font-bold text-slate-500 mt-2 uppercase">Wind Velocity</p>
+                <p className="text-[10px] font-bold text-slate-500 mt-2 uppercase">{t.hero.wind}</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] min-w-[160px]">
@@ -116,7 +122,7 @@ const Weather = () => {
                 <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-blue-500 h-full rounded-full" style={{ width: `${data.current.rain}%` }} />
                 </div>
-                <p className="text-[10px] font-bold text-slate-500 mt-2 uppercase">Rain Chance</p>
+                <p className="text-[10px] font-bold text-slate-500 mt-2 uppercase">{t.hero.rain}</p>
               </div>
             </div>
           </div>
@@ -135,8 +141,8 @@ const Weather = () => {
                 <AlertTriangle size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Farm Advisory</h2>
-                <p className="text-slate-400 text-sm font-bold">Smart recommendations for today</p>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t.advisory.title}</h2>
+                <p className="text-slate-400 text-sm font-bold">{t.advisory.subtitle}</p>
               </div>
             </div>
             
@@ -152,7 +158,7 @@ const Weather = () => {
 
           {/* SPRAY CONDITION GAUGE */}
           <div className="lg:col-span-5 bg-white rounded-[3.5rem] p-10 shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col items-center justify-center text-center">
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10">Condition Index</p>
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] mb-10">{t.gauge.label}</p>
             
             <div className="relative w-56 h-56 flex items-center justify-center mb-10">
               <svg className="absolute w-full h-full -rotate-90">
@@ -177,9 +183,11 @@ const Weather = () => {
               </div>
             </div>
 
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Safe to Spray</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">
+              {sprayScore > 70 ? t.gauge.safe : t.gauge.unsafe}
+            </h3>
             <p className="text-sm font-bold text-slate-400 leading-relaxed px-6">
-              Low wind speeds and zero rain detected. Ideal for pest control.
+              {t.gauge.desc}
             </p>
           </div>
         </div>
@@ -188,7 +196,7 @@ const Weather = () => {
         <section className="bg-white rounded-[3.5rem] p-10 shadow-2xl shadow-slate-200 border border-slate-100">
           <div className="flex items-center mb-10">
             <h2 className="text-2xl font-black text-slate-900 flex items-center gap-4">
-              <Clock className="text-emerald-600" size={24} /> 24-Hour Forecast
+              <Clock className="text-emerald-600" size={24} /> {t.forecast.title}
             </h2>
             <div className="h-px flex-1 bg-slate-100 ml-8" />
           </div>
@@ -208,7 +216,7 @@ const Weather = () => {
                 </div>
                 <p className="text-3xl font-black text-slate-900 mb-2">{h.temp}°</p>
                 <p className="text-[10px] font-black text-blue-500 bg-blue-50 px-3 py-1 rounded-full">
-                  {h.rain}% Rain
+                  {h.rain}% {t.forecast.rain}
                 </p>
               </div>
             ))}

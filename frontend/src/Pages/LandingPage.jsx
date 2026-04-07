@@ -22,7 +22,10 @@ import { useLanguage } from '../Context/LanguageContext';
 import { TRANSLATIONS } from '../Constants/Translations';
 
 const LandingPage = () => {
+  // Pull global state and toggle function from Context
   const { language, toggleLanguage } = useLanguage();
+  
+  // Use the standardized TRANSLATIONS structure from Step 1
   const t = TRANSLATIONS[language];
 
   return (
@@ -48,6 +51,7 @@ const LandingPage = () => {
             ))}
           </div>
           
+          {/* GLOBAL TOGGLE BUTTON */}
           <button 
             onClick={toggleLanguage}
             className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-all active:scale-95 shadow-sm"
@@ -65,7 +69,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      {/* Hero Section (Conversion Focused) */}
+      {/* Hero Section */}
       <header className="relative bg-gradient-to-br from-emerald-50 via-white to-stone-50 px-6 pt-20 pb-28 lg:px-16 lg:pt-32 lg:pb-36 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-30 pointer-events-none">
           <div className="absolute -top-10 -left-10 w-96 h-96 bg-emerald-400 rounded-full blur-[100px]"></div>
@@ -93,7 +97,7 @@ const LandingPage = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link 
                 to="/signup" 
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 hover:-translate-y-1 transition-all active:scale-95 border border-emerald-500 hover:shadow-emerald-600/30"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 hover:-translate-y-1 transition-all active:scale-95 border border-emerald-50 hover:shadow-emerald-600/30"
               >
                 {t.ctaPrimary}
                 <TrendingUp size={20} />
@@ -124,7 +128,7 @@ const LandingPage = () => {
       </section>
 
       {/* The Problem Section */}
-      <section id="പ്രശ്നങ്ങൾ" className="py-24 px-6 lg:px-16 bg-stone-50">
+      <section id={t.nav[0].toLowerCase().replace(/\s/g, '-')} className="py-24 px-6 lg:px-16 bg-stone-50">
         <div className="mx-auto max-w-7xl">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-5xl font-black mb-6 text-slate-900">{t.problemTitle}</h2>
@@ -146,7 +150,7 @@ const LandingPage = () => {
       </section>
 
       {/* The Solution Section */}
-      <section id="പരിഹാരങ്ങൾ" className="py-24 px-6 lg:px-16 bg-white relative overflow-hidden">
+      <section id={t.nav[1].toLowerCase().replace(/\s/g, '-')} className="py-24 px-6 lg:px-16 bg-white relative overflow-hidden">
         <div className="absolute top-1/2 left-0 w-full h-full opacity-[0.02] pointer-events-none transform -translate-y-1/2">
           <div className="w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent"></div>
         </div>

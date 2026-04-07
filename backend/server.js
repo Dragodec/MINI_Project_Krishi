@@ -68,8 +68,8 @@ app.use('/api/chat', chatRoutes);
 // New Integration: Soil Simulation & Plot Management
 app.use('/api/soil', protect, soilRoutes); 
 
-app.use('/api/tasks', taskRoutes);
-app.use('/api/heatmap', heatmapRoutes);
+app.use('/api/tasks', protect, taskRoutes);
+app.use('/api/heatmap', protect, heatmapRoutes);
 
 app.use('/api/usage', protect, usageRoutes);
 

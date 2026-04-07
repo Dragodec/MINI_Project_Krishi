@@ -4,8 +4,14 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, LogIn } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axiosInstance from '../API/axiosInstance';
 
+import { useLanguage } from '../Context/LanguageContext';
+import { TRANSLATIONS } from '../Constants/Translations';
+
 const Login = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].login;
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -16,7 +22,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
-      return toast.error("Please enter both email and password");
+      return toast.error(t.toasts.required);
     }
 
     setLoading(true);
@@ -28,10 +34,10 @@ const Login = () => {
       // The actual authentication is now handled by the browser-managed HttpOnly cookie.
       localStorage.setItem('role', res.data.role);
       
-      toast.success("Login successful! Welcome back.");
+      toast.success(t.toasts.success);
       navigate('/dashboard');
     } catch (err) {
-      const errorMsg = err.response?.data?.error || "Login failed";
+      const errorMsg = err.response?.data?.error || t.toasts.fail;
       toast.error(errorMsg);
       
       // Logic for unverified users
@@ -51,19 +57,19 @@ const Login = () => {
           <div className="bg-white/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <LogIn size={32} />
           </div>
-          <h2 className="text-2xl font-bold">Welcome Back</h2>
-          <p className="text-emerald-100 mt-2 text-sm opacity-90">Login to manage your farm and queries</p>
+          <h2 className="text-2xl font-bold">{t.title}</h2>
+          <p className="text-emerald-100 mt-2 text-sm opacity-90">{t.subtitle}</p>
         </div>
 
         <div className="p-8">
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Email Address</label>
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">{t.labels.email}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3.5 text-slate-400" size={18} />
                 <input
                   type="email"
-                  placeholder="farmer@example.com"
+                  placeholder={t.placeholders.email}
                   className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -73,16 +79,16 @@ const Login = () => {
 
             <div className="space-y-1">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-xs font-bold uppercase text-slate-500">Password</label>
+                <label className="text-xs font-bold uppercase text-slate-500">{t.labels.password}</label>
                 <Link to="/forgot-password" size="sm" className="text-xs font-bold text-emerald-700 hover:text-emerald-600">
-                  Forgot?
+                  {t.labels.forgot}
                 </Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-3.5 text-slate-400" size={18} />
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder={t.placeholders.password}
                   className="w-full pl-10 pr-12 py-3 bg-stone-50 border border-stone-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -101,16 +107,16 @@ const Login = () => {
               disabled={loading}
               className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? t.buttons.authenticating : t.buttons.signIn}
               {!loading && <ArrowRight size={18} />}
             </button>
           </form>
 
           <div className="mt-8 pt-6 border-t border-stone-100 text-center">
             <p className="text-slate-500 text-sm">
-              New to AgriAI?{' '}
+              {t.footer.new}{' '}
               <Link to="/signup" className="text-emerald-700 font-bold hover:underline">
-                Create Account
+                {t.footer.link}
               </Link>
             </p>
           </div>

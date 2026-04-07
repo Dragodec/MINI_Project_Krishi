@@ -96,7 +96,9 @@ Follow these guidelines strictly:
 
 7. Keep the response under 150 words.
 
-8. Structure your answer like this:
+8. IMPORTANT: If the user's question is too generic and doesn't specify which crop they are farming (e.g., "how to protect my crops"), DO NOT assume a crop from the Agricultural Knowledge. Instead, politely ask them to specify which crop they are growing so you can give accurate advice.
+
+9. Structure your answer like this:
 
 Dear farmer,
 
@@ -209,40 +211,41 @@ Farmer Question:
 
     return {"response": final_text}
 
-# ================== AUTOMATED TASKS ==================
+# ================== AUTOMATED TASKS (CONTEXT AWARE) ==================
 
 @app.post("/generate-tasks")
 async def generate_tasks(
     crop: str = Form(...),
-    plantingDate: str = Form(...)
+    plantingDate: str = Form(...),
+    soilType: str = Form("laterite"),
+    moisture: str = Form("50"),
+    weather: str = Form("clear")
 ):
     system_prompt = f"""
-You are an expert agricultural planner. Provide a lifecycle calendar for '{crop}' planted on '{plantingDate}'.
-Return EXACTLY a JSON array of 5 to 7 crucial tasks.
-Format your response purely as a valid JSON array. Do not include any Markdown like ```json.
-Example format:
-[
-  {{"title": "Seed Treatment", "description": "Apply fungicide before sowing", "daysFromPlanting": 0}},
-  {{"title": "First Fertilizer", "description": "Apply NPK", "daysFromPlanting": 15}}
-]
-"""
+    You are a professional Agronomist for Kerala Krishi Bhavan. 
+    Provide a highly specific lifecycle calendar for '{crop}' planted on '{plantingDate}'.
+
+    FIELD CONTEXT:
+    - Soil Type: {soilType}
+    - Soil Moisture: {moisture}%
+    - Current Weather: {weather}
+
+    INSTRUCTIONS:
+    1. If moisture is < 25%, the FIRST task MUST be 'Emergency Irrigation'.
+    2. If soil is 'coastal_sand', fertilizer tasks must be more frequent but lower dosage.
+    3. If weather is 'Rainy', do not schedule pesticide sprays in the first 7 days.
+    
+    Return EXACTLY a JSON array of 5 to 7 crucial tasks. No markdown.
+    Format: [{{"title": "...", "description": "...", "daysFromPlanting": 0}}]
+    """
     try:
         response = llm.invoke([HumanMessage(content=[{"type": "text", "text": system_prompt}])])
-        # Try to parse json to ensure it's valid, clean up backticks if any
-        raw_text = response.content.strip()
-        if raw_text.startswith("```json"):
-            raw_text = raw_text[7:]
-        if raw_text.startswith("```"):
-            raw_text = raw_text[3:]
-        if raw_text.endswith("```"):
-            raw_text = raw_text[:-3]
-        
-        raw_text = raw_text.strip()
+        raw_text = response.content.strip().replace("```json", "").replace("```", "").strip()
         tasks = json.loads(raw_text)
         return {"tasks": tasks}
     except Exception as e:
         print("❌ Gemini Task Error:", e)
-        return {"error": "Failed to generate tasks via AI."}
+        return {"error": "Failed to generate context-aware tasks."}
 
 # ================== RUN SERVER ==================
 

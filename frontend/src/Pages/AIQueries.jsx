@@ -7,9 +7,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import { useLanguage } from '../Context/LanguageContext';
+import { TRANSLATIONS } from '../Constants/Translations';
+
 const AIQueries = () => {
   const { chatId } = useParams(); // URL parameter for multi-chat
   const navigate = useNavigate();
+
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].queries;
 
   const [messages, setMessages] = useState([]);
   const [history, setHistory] = useState([]);
@@ -42,10 +48,10 @@ const AIQueries = () => {
       const res = await axiosInstance.get(`/chat/${id}`);
       setMessages(res.data.messages || []);
     } catch (err) {
-      toast.error("Unable to load this conversation");
+      toast.error(t.errors.loadChat);
       navigate('/queries');
     }
-  }, [navigate]);
+  }, [navigate, t.errors.loadChat]);
 
   // Fetch sidebar history list
   const fetchHistory = async () => {
@@ -73,7 +79,7 @@ const AIQueries = () => {
 
   const handleSend = async () => {
     if (!text.trim() && !image && !audio) {
-      return toast.error("Provide a query, image, or voice note");
+      return toast.error(t.errors.emptyQuery);
     }
 
     const formData = new FormData();
@@ -85,7 +91,7 @@ const AIQueries = () => {
     // Optimistic UI
     const userMessage = {
       role: 'user',
-      text: text || (image ? "Sent an image for analysis" : "Sent a voice query"),
+      text: text || (image ? (language === 'ml' ? "ചിത്രം അയച്ചു" : "Sent an image for analysis") : (language === 'ml' ? "വോയ്‌സ് ക്വറി അയച്ചു" : "Sent a voice query")),
       image: image ? URL.createObjectURL(image) : null,
       audio: audio ? URL.createObjectURL(audio) : null,
       id: `user-${Date.now()}`
@@ -113,7 +119,7 @@ const AIQueries = () => {
       }
       fetchHistory();
     } catch (err) {
-      toast.error(err.response?.data?.error || "AI Station Unreachable");
+      toast.error(err.response?.data?.error || t.errors.unreachable);
       setText(lastText); 
     } finally {
       setLoading(false);
@@ -122,26 +128,28 @@ const AIQueries = () => {
 
   const deleteChat = async (id, e) => {
     e.stopPropagation();
-    if(!window.confirm("Delete this field log?")) return;
+    const confirmMsg = language === 'ml' ? "ഈ ലോഗ് നീക്കം ചെയ്യട്ടെ?" : "Delete this field log?";
+    if(!window.confirm(confirmMsg)) return;
     try {
       await axiosInstance.delete(`/chat/${id}`);
       fetchHistory();
       if(chatId === id) navigate('/queries');
-      toast.success("Log deleted");
+      toast.success(language === 'ml' ? "ലോഗ് നീക്കം ചെയ്തു" : "Log deleted");
     } catch (err) {
-      toast.error("Failed to delete");
+      toast.error(t.errors.deleteFail);
     }
   };
 
   const renameChat = async (id, e) => {
     e.stopPropagation();
-    const newTitle = prompt("Enter new name for this log:");
+    const promptMsg = language === 'ml' ? "ലോഗിന് പുതിയ പേര് നൽകുക:" : "Enter new name for this log:";
+    const newTitle = prompt(promptMsg);
     if(!newTitle) return;
     try {
       await axiosInstance.put(`/chat/${id}/rename`, { title: newTitle });
       fetchHistory();
     } catch (err) {
-      toast.error("Failed to rename");
+      toast.error(t.errors.renameFail);
     }
   };
 
@@ -151,14 +159,17 @@ const AIQueries = () => {
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
+  const [speechLang, setSpeechLang] = useState(language === 'ml' ? 'ml-IN' : 'en-IN');
+
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return toast.error("Browser not supported");
+    if (!SpeechRecognition) return toast.error(t.errors.browserSupport);
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN'; 
+    recognition.lang = speechLang; 
     recognition.onstart = () => setIsRecording(true);
     recognition.onend = () => setIsRecording(false);
     recognition.onresult = (e) => setText(e.results[0][0].transcript);
+    recognition.onerror = (e) => toast.error("Mic error: " + e.error);
     recognition.start();
   };
 
@@ -173,7 +184,7 @@ const AIQueries = () => {
           </div>
           <div>
             <h1 className="font-black text-slate-900 tracking-tight leading-none text-lg">Agri-GPT</h1>
-            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Intelligent Station</span>
+            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{t.station}</span>
           </div>
         </div>
 
@@ -181,7 +192,7 @@ const AIQueries = () => {
             <button 
               onClick={() => navigate('/queries')}
               className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"
-              title="New Chat"
+              title={t.newChat}
             >
               <Plus size={20} />
             </button>
@@ -190,7 +201,7 @@ const AIQueries = () => {
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-emerald-200 text-slate-600 rounded-xl transition-all font-bold text-xs uppercase tracking-widest shadow-sm"
             >
               <Clock size={16} className="text-emerald-500" />
-              <span className="hidden md:inline">Past Logs</span>
+              <span className="hidden md:inline">{t.pastLogs}</span>
             </button>
         </div>
       </header>
@@ -205,9 +216,9 @@ const AIQueries = () => {
                     <Leaf size={40} className="text-emerald-600" />
                 </div>
             </div>
-            <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Your Field, Digitized.</h2>
+            <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">{t.emptyTitle}</h2>
             <p className="text-slate-500 font-medium mb-8 leading-relaxed max-w-md">
-                Analyze crop health or pest issues using text, images, or voice.
+                {t.emptySub}
             </p>
           </div>
         )}
@@ -242,7 +253,7 @@ const AIQueries = () => {
 
               <div className={`mt-3 flex items-center justify-between ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 <span className="text-[9px] font-black uppercase tracking-tighter opacity-30">
-                  {msg.role === 'user' ? 'Farmer Node' : 'Krishi Officer AI'}
+                  {msg.role === 'user' ? t.userRole : t.aiRole}
                 </span>
                 
                 {msg.role === 'assistant' && msg.text && (
@@ -251,7 +262,7 @@ const AIQueries = () => {
                     title="Forward to WhatsApp Community"
                     className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#25D366] hover:bg-[#25D366]/10 px-2.5 py-1.5 rounded-lg active:scale-95 transition-all border border-[#25D366]/20"
                   >
-                    <Share2 size={12} /> Share
+                    <Share2 size={12} /> {t.share}
                   </button>
                 )}
               </div>
@@ -263,7 +274,7 @@ const AIQueries = () => {
           <div className="flex justify-start">
             <div className="bg-white border border-slate-100 p-5 rounded-[2rem] rounded-tl-none flex items-center gap-3 shadow-md">
               <Loader2 size={18} className="animate-spin text-emerald-500" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Analyzing Field Data...</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.analyzing}</span>
             </div>
           </div>
         )}
@@ -288,7 +299,7 @@ const AIQueries = () => {
               {audio && (
                 <div className="flex items-center gap-2 p-2 bg-emerald-100 rounded-lg">
                   <Volume2 size={16} className="text-emerald-700" />
-                  <span className="text-[10px] font-bold text-emerald-700">Voice Note Ready</span>
+                  <span className="text-[10px] font-bold text-emerald-700">{t.voiceReady}</span>
                   <button onClick={() => setAudio(null)} className="text-red-500 ml-1"><X size={14}/></button>
                 </div>
               )}
@@ -301,19 +312,29 @@ const AIQueries = () => {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               className="w-full bg-transparent border-none outline-none text-slate-900 font-bold placeholder:text-slate-300 px-6 py-5 text-lg"
-              placeholder="Describe your crop issue..."
+              placeholder={t.placeholder}
             />
             
             <div className="bg-slate-50/80 px-4 py-3 border-t border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <button onClick={() => fileInputRef.current.click()} className="p-3 text-slate-400 hover:text-emerald-600 hover:bg-white rounded-2xl transition-all flex items-center gap-2">
                         <ImageIcon size={20} />
-                        <span className="text-[10px] font-black uppercase hidden sm:inline">Add Image</span>
+                        <span className="text-[10px] font-black uppercase hidden sm:inline">{t.addImage}</span>
                     </button>
                     <button onClick={startListening} className={`p-3 rounded-2xl transition-all flex items-center gap-2 ${isRecording ? 'bg-red-500 text-white animate-pulse shadow-lg' : 'text-slate-400 hover:bg-white'}`}>
                         <Mic size={20} />
-                        <span className="text-[10px] font-black uppercase hidden sm:inline">{isRecording ? 'Listening...' : 'Voice'}</span>
+                        <span className="text-[10px] font-black uppercase hidden sm:inline">{isRecording ? t.listening : t.voice}</span>
                     </button>
+                    <select 
+                      value={speechLang} 
+                      onChange={(e) => setSpeechLang(e.target.value)}
+                      className="bg-transparent text-[10px] font-black uppercase text-slate-500 outline-none hover:text-emerald-600 cursor-pointer ml-1"
+                      title="Select Voice Language"
+                    >
+                      <option value="ml-IN">മലയാളം</option>
+                      <option value="en-IN">English</option>
+                      <option value="hi-IN">हिन्दी</option>
+                    </select>
                 </div>
 
                 <button 
@@ -321,7 +342,7 @@ const AIQueries = () => {
                     disabled={loading || (!text && !image && !audio)} 
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-7 py-3 rounded-2xl shadow-xl shadow-emerald-200 active:scale-95 transition-all disabled:opacity-30 flex items-center gap-2"
                 >
-                    <span className="text-xs font-black uppercase tracking-widest">Analyze</span>
+                    <span className="text-xs font-black uppercase tracking-widest">{t.analyzeBtn}</span>
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 </button>
             </div>
@@ -335,7 +356,7 @@ const AIQueries = () => {
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowHistory(false)} />
           <div className="relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
              <div className="p-6 border-b flex items-center justify-between">
-                <h2 className="font-black text-slate-900 uppercase text-xs tracking-[0.2em]">Field Logs</h2>
+                <h2 className="font-black text-slate-900 uppercase text-xs tracking-[0.2em]">{t.fieldLogs}</h2>
                 <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20}/></button>
              </div>
              <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
@@ -350,12 +371,11 @@ const AIQueries = () => {
                                 <Calendar size={12}/> {new Date(h.createdAt).toLocaleDateString()}
                             </p>
                             <p className="text-sm font-bold text-slate-700 truncate pr-2">
-                              {h.title || "Multimedia Query"}
+                              {h.title || t.multimediaQuery}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button onClick={(e) => renameChat(h._id, e)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-white rounded-lg transition-all">
-                            <Plus size={14} className="rotate-45" /> {/* Using Edit/Plus as placeholders */}
                             <Edit3 size={14} />
                           </button>
                           <button onClick={(e) => deleteChat(h._id, e)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all">

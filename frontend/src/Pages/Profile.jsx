@@ -13,7 +13,13 @@ import {
 import axiosInstance from '../API/axiosInstance';
 import { toast } from 'react-hot-toast';
 
+import { useLanguage } from '../Context/LanguageContext';
+import { TRANSLATIONS } from '../Constants/Translations';
+
 const Profile = () => {
+  const { language } = useLanguage();
+  const t = TRANSLATIONS[language].profile;
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -33,7 +39,7 @@ const Profile = () => {
       setUser(res.data);
       setEditName(res.data.name);
     } catch (err) {
-      toast.error("Failed to load profile");
+      toast.error(t.toasts.loadFail);
     } finally {
       setLoading(false);
     }
@@ -46,9 +52,9 @@ const Profile = () => {
         name: editName
       });
       setUser(res.data.user);
-      toast.success("Profile updated");
+      toast.success(t.toasts.updateSuccess);
     } catch (err) {
-      toast.error("Update failed");
+      toast.error(t.toasts.updateFail);
     } finally {
       setUpdating(false);
     }
@@ -56,15 +62,15 @@ const Profile = () => {
 
   const handlePasswordChange = async () => {
     if (!passwords.currentPassword || !passwords.newPassword) {
-      return toast.error("Please fill in both password fields");
+      return toast.error(t.toasts.passwordRequired);
     }
     setUpdating(true);
     try {
       await axiosInstance.patch('/auth/change-password', passwords);
-      toast.success("Password updated successfully");
+      toast.success(t.toasts.passwordSuccess);
       setPasswords({ currentPassword: '', newPassword: '' });
     } catch (err) {
-      toast.error(err.response?.data?.error || "Error updating password");
+      toast.error(err.response?.data?.error || t.toasts.passwordFail);
     } finally {
       setUpdating(false);
     }
@@ -123,7 +129,7 @@ const Profile = () => {
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white rounded-[3rem] p-8 shadow-2xl shadow-slate-200 border border-slate-100">
               <h2 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
-                <ShieldCheck className="text-emerald-600" size={22} /> Account Details
+                <ShieldCheck className="text-emerald-600" size={22} /> {t.labels.accountDetails}
               </h2>
               
               <div className="space-y-6">
@@ -132,7 +138,7 @@ const Profile = () => {
                     <Mail size={20} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.labels.email}</p>
                     <p className="text-slate-900 font-bold">{user.email}</p>
                   </div>
                 </div>
@@ -142,8 +148,12 @@ const Profile = () => {
                     <Calendar size={20} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Member Since</p>
-                    <p className="text-slate-900 font-bold">{new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' })}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.labels.memberSince}</p>
+                    <p className="text-slate-900 font-bold">
+                      {language === 'ml' 
+                        ? new Date(user.createdAt).toLocaleDateString('ml-IN', { month: 'long', year: 'numeric', day: 'numeric' })
+                        : new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' })}
+                    </p>
                   </div>
                 </div>
 
@@ -151,7 +161,7 @@ const Profile = () => {
                   <div className={`flex items-center gap-2 p-4 rounded-3xl ${user.isVerified ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
                     {user.isVerified ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                     <span className="text-xs font-black uppercase tracking-tight">
-                      {user.isVerified ? 'Verified Account' : 'Verification Pending'}
+                      {user.isVerified ? t.labels.verified : t.labels.pending}
                     </span>
                   </div>
                 </div>
@@ -166,18 +176,18 @@ const Profile = () => {
             <div className="bg-white rounded-[3rem] p-10 shadow-2xl shadow-slate-200 border border-slate-100">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                  <Edit3 className="text-emerald-600" size={24} /> General
+                  <Edit3 className="text-emerald-600" size={24} /> {t.labels.general}
                 </h2>
               </div>
               
               <div className="space-y-6">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">Display Name</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block">{t.labels.displayName}</label>
                   <input
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Enter your name"
+                    placeholder={t.placeholders.name}
                     className="w-full bg-slate-50 border-none rounded-3xl p-5 text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 transition-all shadow-inner"
                   />
                 </div>
@@ -188,7 +198,7 @@ const Profile = () => {
                   className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-10 rounded-3xl transition-all shadow-lg shadow-emerald-200 active:scale-95 flex items-center justify-center gap-2"
                 >
                   {updating && <Loader2 size={18} className="animate-spin" />}
-                  Save Profile Changes
+                  {updating ? t.buttons.updating : t.buttons.saveProfile}
                 </button>
               </div>
             </div>
@@ -196,21 +206,21 @@ const Profile = () => {
             {/* PASSWORD CARD */}
             <div className="bg-white rounded-[3.5rem] p-10 shadow-2xl shadow-slate-200 border border-slate-100">
               <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3 mb-8">
-                <Key className="text-slate-900" size={24} /> Security
+                <Key className="text-slate-900" size={24} /> {t.labels.security}
               </h2>
 
               <div className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <input
                     type="password"
-                    placeholder="Current Password"
+                    placeholder={t.placeholders.currentPass}
                     value={passwords.currentPassword}
                     onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
                     className="w-full bg-slate-50 border-none rounded-3xl p-5 text-slate-900 font-bold focus:ring-2 focus:ring-slate-900 transition-all shadow-inner"
                   />
                   <input
                     type="password"
-                    placeholder="New Password"
+                    placeholder={t.placeholders.newPass}
                     value={passwords.newPassword}
                     onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
                     className="w-full bg-slate-50 border-none rounded-3xl p-5 text-slate-900 font-bold focus:ring-2 focus:ring-slate-900 transition-all shadow-inner"
@@ -223,7 +233,7 @@ const Profile = () => {
                   className="w-full bg-slate-900 hover:bg-black text-white font-black py-4 rounded-3xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
                 >
                   {updating && <Loader2 size={18} className="animate-spin" />}
-                  Update Security Credentials
+                  {updating ? t.buttons.updating : t.buttons.updateSecurity}
                 </button>
               </div>
             </div>
